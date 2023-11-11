@@ -158,6 +158,7 @@ dependencies = [
  "comrak",
  "rss",
  "serde",
+ "serde_json",
  "tera",
 ]
 

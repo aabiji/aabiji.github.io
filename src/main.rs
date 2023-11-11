@@ -1,7 +1,10 @@
 use tera::Tera;
 use tera::Context;
-use serde::Serialize;
+
 use comrak::nodes::{AstNode, NodeValue};
+
+use serde_json::Value;
+use serde::Serialize;
 
 // Traverse the AST counting the number of words in each text node
 fn count_words<'a>(node: &'a AstNode<'a>) -> usize {
@@ -44,16 +47,25 @@ fn transpile_markdown(file_contents: &str) -> String {
 struct Post {
     path: String,
     title: String,
-
     html: String,
     markdown: String,
-
     read_time: String,
     publish_date: String,
 }
 
 impl Post {
-    fn new(path: &str) -> Self {
+    fn new(title: &str, path: &str, date: &str) -> Self {
+        Post {
+            path: String::from(path),
+            title: String::from(title),
+            publish_date: String::from(date),
+            html: String::new(),
+            markdown: String::new(),
+            read_time: String::new(),
+        }
+    }
+
+    fn init(path: &str) -> Self {
         let markdown = std::fs::read_to_string(&path).unwrap();
         let html = transpile_markdown(&markdown);
 
@@ -74,17 +86,83 @@ impl Post {
     }
 }
 
-fn build() {
-    let post = Post::new("test.md");
+#[derive(Serialize)]
+struct Blog {
+    json: Value,
+    posts: Vec<Post>,
+    json_path: String,
+    removed_post: String,
+}
 
-    let file = "post.template";
-    let mut tera = Tera::default();
-    tera.add_template_file("templates/".to_owned() + file, Some(&file)).unwrap();
+impl Blog {
+    fn new(json_path: &str) -> Self {
+        Blog {
+            json: Value::Null,
+            posts: Vec::new(),
+            removed_post: String::new(),
+            json_path: String::from(json_path)
+        }
+    }
 
-    let final_html = tera.render(&file, &Context::from_serialize(&post).unwrap()).unwrap();
-    std::fs::write(post.path, final_html).unwrap();
+    fn load(&mut self) {
+        let json_str = std::fs::read_to_string(&self.json_path).unwrap();
+        self.json = serde_json::from_str(&json_str).unwrap();
+
+        for (key, value) in self.json["posts"].as_object().unwrap() {
+            if key == &self.removed_post {
+                continue;
+            }
+
+            let p = Post::new(key, &value["path"].to_string(), &value["publish_date"].to_string());
+            self.posts.push(p);
+        }
+    }
+
+    fn build_post(&mut self, path: &str) {
+        let mut tera = Tera::default();
+        tera.add_template_file("templates/post.template", Some("Post")).unwrap();
+
+        let p = Post::init(path);
+        let context = Context::from_serialize(&p).unwrap();
+        let html = tera.render("Post", &context).unwrap();
+        std::fs::write(&p.path, html).unwrap();
+
+        self.posts.push(p);
+    }
+
+    fn build(&mut self) {
+        let mut tera = Tera::default();
+        tera.add_template_file("templates/index.template", Some("Index")).unwrap();
+
+        let mut context = Context::new();
+        context.insert("posts", &self.posts);
+        let html = tera.render("Index", &context).unwrap();
+        std::fs::write("index.html", html).unwrap();
+    }
+}
+
+fn print_help() {
+    println!("blog info goes here");
 }
 
 fn main() {
-    build();
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() == 1 {
+        print_help();
+        return;
+    }
+
+    let mut blog = Blog::new("archive.json");
+
+    if &args[1] == "publish" {
+        blog.build_post(&args[2]);
+    } else if &args[1] == "remove" {
+        blog.removed_post = String::from(&args[2]);
+    } else {
+        print_help();
+        return;
+    }
+
+    blog.load();
+    blog.build();
 }
