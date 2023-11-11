@@ -1,0 +1,11 @@
+[package]
+name = "blog"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rss = "2.0"
+comrak = "0.19"
+tera = "1.19.1"
+chrono = "0.4.31"
+serde = { version = "1.0.108", features = ["derive"]}
