@@ -17,11 +17,11 @@
                 or just relaxing. Here's the articles I've writen:
             </p>
 
-            {% for post in posts %}
+            {% for title, post in posts %}
             <div>
                 <p>
                     <p class="dim"> {{ post.publish_date }} </p>
-                    <a href="{{ post.path }}"> {{ post.title }} </a>
+                    <a href="{{ post.path }}"> {{ title }} </a>
                 </p>
             </div>
             {% endfor %}
