@@ -9,7 +9,7 @@
 
     <body>
         <div class="top">
-            <a href="../index.html"> ← Home </a>
+            <a href="index.html"> ← Home </a>
             <p class="dim">| {{ publish_date }} |</p>
             <p class="dim">{{ read_time }} read time</p>
         </div>

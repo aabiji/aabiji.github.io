@@ -8,6 +8,11 @@ use comrak::nodes::{AstNode, NodeValue};
 use serde_json::Value;
 use serde::Serialize;
 
+const HTML_PATH: &str = "web/";
+const POST_CACHE_PATH: &str = "static/posts.json";
+const HOME_TEMPLATE: &str = "static/index.template";
+const POST_TEMPLATE: &str = "static/post.template";
+
 // Traverse the AST counting the number of words in each text node
 fn count_words<'a>(node: &'a AstNode<'a>) -> usize {
     let mut word_count = match &node.data.borrow().value {
@@ -77,7 +82,7 @@ impl Post {
         let title_line = markdown.lines().next().unwrap();
         let title = title_line[2..].to_string();
 
-        let path = "web/".to_owned() + &title.replace(" ", "_") + ".html";
+        let path = title.replace(" ", "_") + ".html";
 
         let wpm = 200.0; // Number of words the average person reads
         let words = (get_word_count(&markdown) as f64) / wpm;
@@ -90,14 +95,12 @@ impl Post {
 #[derive(Serialize)]
 struct Blog {
     posts: HashMap<String, Post>,
-    posts_cache_path: String
 }
 
 impl Blog {
-    fn new(posts_cache_path: &str) -> Self {
+    fn new() -> Self {
         let mut blog = Blog {
             posts: HashMap::new(),
-            posts_cache_path: String::from(posts_cache_path)
         };
 
         blog.load_archive();
@@ -105,7 +108,7 @@ impl Blog {
     }
 
     fn load_archive(&mut self) {
-        let json_str = std::fs::read_to_string(&self.posts_cache_path).unwrap();
+        let json_str = std::fs::read_to_string(POST_CACHE_PATH).unwrap();
         if json_str.len() == 0 {
             return;
         }
@@ -123,7 +126,7 @@ impl Blog {
 
     fn save_archive(&self) {
         let json = serde_json::to_string(&self.posts).unwrap();
-        std::fs::write(&self.posts_cache_path, json).unwrap();
+        std::fs::write(POST_CACHE_PATH, json).unwrap();
     }
 
     fn remove_post(&mut self, post_title: &str) {
@@ -132,14 +135,13 @@ impl Blog {
 
     fn add_post(&mut self, path: &str) {
         let mut tera = Tera::default();
-        let template = "static/post.template";
-        tera.add_template_file(template, Some("Post")).unwrap();
+        tera.add_template_file(POST_TEMPLATE, Some("Post")).unwrap();
 
         let mut p = Post::init(path);
         let context = Context::from_serialize(&p).unwrap();
 
         let html = tera.render("Post", &context).unwrap();
-        std::fs::write(&p.path, html).unwrap();
+        std::fs::write(HTML_PATH.to_owned() + &p.path, html).unwrap();
 
         p.html = String::new();
         p.markdown = String::new();
@@ -148,14 +150,13 @@ impl Blog {
 
     fn build(&mut self) {
         let mut tera = Tera::default();
-        let template = "static/index.template";
-        tera.add_template_file(template, Some("Index")).unwrap();
+        tera.add_template_file(HOME_TEMPLATE, Some("Index")).unwrap();
 
         let mut context = Context::new();
         context.insert("posts", &self.posts);
 
         let html = tera.render("Index", &context).unwrap();
-        std::fs::write("index.html", html).unwrap();
+        std::fs::write(HTML_PATH.to_owned() + "index.html", html).unwrap();
     }
 }
 
@@ -185,7 +186,7 @@ fn main() {
         return;
     }
 
-    let mut blog = Blog::new("static/posts.json");
+    let mut blog = Blog::new();
 
     if &args[1] == "publish" {
         blog.add_post(&args[2]);
