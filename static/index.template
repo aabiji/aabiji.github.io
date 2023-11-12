@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="assets/styles.css">
+        <link rel="stylesheet" href="static/styles.css">
     </head>
 
     <body>
@@ -17,15 +17,11 @@
                 or just relaxing. Here's the articles I've writen:
             </p>
 
+            <ul>
             {% for title, post in posts %}
-            <div>
-                <p>
-                    <p class="dim"> {{ post.publish_date }} </p>
-                    <a href="{{ post.path }}"> {{ title }} </a>
-                </p>
-            </div>
+                <li><a href="{{ post.path }}"> {{ title }} </a></li>
             {% endfor %}
-
+            </ul>
         </div>
     </body>
 </html>

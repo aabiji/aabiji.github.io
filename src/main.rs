@@ -77,7 +77,7 @@ impl Post {
         let title_line = markdown.lines().next().unwrap();
         let title = title_line[2..].to_string();
 
-        let path = title.replace(" ", "_") + ".html";
+        let path = "web/".to_owned() + &title.replace(" ", "_") + ".html";
 
         let wpm = 200.0; // Number of words the average person reads
         let words = (get_word_count(&markdown) as f64) / wpm;
@@ -106,9 +106,12 @@ impl Blog {
 
     fn load_archive(&mut self) {
         let json_str = std::fs::read_to_string(&self.posts_cache_path).unwrap();
+        if json_str.len() == 0 {
+            return;
+        }
         let json: Value = serde_json::from_str(&json_str).unwrap();
 
-        for (key, value) in json["posts"].as_object().unwrap() {
+        for (key, value) in json.as_object().unwrap() {
             let mut p = Post::new();
 
             p.title = key.to_string();
@@ -129,21 +132,23 @@ impl Blog {
 
     fn add_post(&mut self, path: &str) {
         let mut tera = Tera::default();
-        let template = "templates/post.template";
+        let template = "static/post.template";
         tera.add_template_file(template, Some("Post")).unwrap();
 
-        let p = Post::init(path);
+        let mut p = Post::init(path);
         let context = Context::from_serialize(&p).unwrap();
 
         let html = tera.render("Post", &context).unwrap();
         std::fs::write(&p.path, html).unwrap();
 
+        p.html = String::new();
+        p.markdown = String::new();
         self.posts.insert(p.title.clone(), p);
     }
 
     fn build(&mut self) {
         let mut tera = Tera::default();
-        let template = "templates/index.template";
+        let template = "static/index.template";
         tera.add_template_file(template, Some("Index")).unwrap();
 
         let mut context = Context::new();
@@ -180,7 +185,7 @@ fn main() {
         return;
     }
 
-    let mut blog = Blog::new("assets/posts.json");
+    let mut blog = Blog::new("static/posts.json");
 
     if &args[1] == "publish" {
         blog.add_post(&args[2]);
