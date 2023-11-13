@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::io::BufReader;
+use std::path::Path;
 
 use tera::Tera;
 use tera::Context;
@@ -8,10 +10,36 @@ use comrak::nodes::{AstNode, NodeValue};
 use serde_json::Value;
 use serde::Serialize;
 
-const HTML_PATH: &str = "web/";
+use rss::{Channel, Item};
+
+const HTML_DIRECTORY: &str  = "web/";
+const RSS_PATH: &str        = "web/rss.xml";
+
 const POST_CACHE_PATH: &str = "static/posts.json";
-const HOME_TEMPLATE: &str = "static/index.template";
-const POST_TEMPLATE: &str = "static/post.template";
+const HOME_TEMPLATE: &str   = "static/index.template";
+const POST_TEMPLATE: &str   = "static/post.template";
+
+const BLOG_URL: &str        = "https://aabiji.github.io/";
+const BLOG_TITLE: &str      = "Abigail Adegbiji's blog";
+
+fn check_paths() {
+    if !Path::new(HTML_DIRECTORY).exists() {
+        std::fs::create_dir(HTML_DIRECTORY).unwrap();
+    }
+
+    if !Path::new(HOME_TEMPLATE).exists() || !Path::new(POST_TEMPLATE).exists() {
+        let msg = "Template files (index.template and post.template) in static/ not found.";
+        panic!("{}", msg);
+    }
+
+    if !Path::new(POST_CACHE_PATH).exists() {
+        let _ = std::fs::File::create(POST_CACHE_PATH);
+    }
+
+    if !Path::new(RSS_PATH).exists() {
+        let _ = std::fs::File::create(RSS_PATH);
+    }
+}
 
 // Traverse the AST counting the number of words in each text node
 fn count_words<'a>(node: &'a AstNode<'a>) -> usize {
@@ -92,14 +120,83 @@ impl Post {
     }
 }
 
+struct RSSFeed {
+    channel: rss::Channel
+}
+
+impl RSSFeed {
+    fn new() -> Self {
+        let file = std::fs::File::open(RSS_PATH).unwrap();
+        let channel = match Channel::read_from(BufReader::new(file)) {
+            Ok(c) => c,
+            Err(_) => {
+                // Create a new channel on EOF error
+                let mut new_channel = Channel::default();
+                new_channel.set_link(BLOG_URL);
+                new_channel.set_title(BLOG_TITLE);
+                new_channel
+            }
+        };
+
+        RSSFeed {channel}
+    }
+
+    fn item_exists(&self, title: &str) -> bool {
+        for item in self.channel.items() {
+            if item.title.as_ref().unwrap() == title {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn add_item(&mut self, title: &str, path: &str) {
+        let url = BLOG_URL.to_owned() + path;
+        let time = chrono::Utc::now();
+
+        let mut item = Item::default();
+        item.set_title(String::from(title));
+        item.set_link(String::from(url));
+        item.set_pub_date(String::from(time.to_rfc2822()));
+
+        if self.item_exists(title) {
+            self.remove_item(title);
+        }
+
+        let mut items = Vec::from(self.channel.items());
+        items.push(item);
+        self.channel.set_items(items);
+    }
+
+    fn remove_item(&mut self, title: &str) {
+        let mut items: Vec<Item> = Vec::new();
+        for item in self.channel.items() {
+            if item.title.as_ref().unwrap() == title {
+                continue;
+            }
+            items.push(item.clone());
+        }
+
+        self.channel.set_items(items);
+    }
+
+    fn save(&self) {
+        std::fs::write(RSS_PATH, self.channel.to_string()).unwrap();
+    }
+}
+
 #[derive(Serialize)]
 struct Blog {
+    #[serde(skip)]
+    feed: RSSFeed,
+
     posts: HashMap<String, Post>,
 }
 
 impl Blog {
     fn new() -> Self {
         let mut blog = Blog {
+            feed: RSSFeed::new(),
             posts: HashMap::new(),
         };
 
@@ -116,10 +213,10 @@ impl Blog {
 
         for (key, value) in json.as_object().unwrap() {
             let mut p = Post::new();
-
             p.title = key.to_string();
             p.path = value["path"].to_string();
             p.publish_date = value["publish_date"].to_string();
+
             self.posts.insert(key.to_string(), p);
         }
     }
@@ -130,6 +227,7 @@ impl Blog {
     }
 
     fn remove_post(&mut self, post_title: &str) {
+        self.feed.remove_item(post_title);
         self.posts.remove(post_title);
     }
 
@@ -141,7 +239,9 @@ impl Blog {
         let context = Context::from_serialize(&p).unwrap();
 
         let html = tera.render("Post", &context).unwrap();
-        std::fs::write(HTML_PATH.to_owned() + &p.path, html).unwrap();
+        std::fs::write(HTML_DIRECTORY.to_owned() + &p.path, html).unwrap();
+
+        self.feed.add_item(&p.title, &p.path);
 
         p.html = String::new();
         p.markdown = String::new();
@@ -156,7 +256,9 @@ impl Blog {
         context.insert("posts", &self.posts);
 
         let html = tera.render("Index", &context).unwrap();
-        std::fs::write(HTML_PATH.to_owned() + "index.html", html).unwrap();
+        std::fs::write(HTML_DIRECTORY.to_owned() + "index.html", html).unwrap();
+
+        self.feed.save();
     }
 }
 
@@ -186,16 +288,17 @@ fn main() {
         return;
     }
 
+    check_paths();
     let mut blog = Blog::new();
 
-    if &args[1] == "publish" {
-        blog.add_post(&args[2]);
-    } else if &args[1] == "remove" {
-        blog.remove_post(&args[2]);
-    } else {
-        print_help();
-        return;
-    }
+    match args[1].as_str() {
+        "publish" => blog.add_post(&args[2]),
+        "remove"  => blog.remove_post(&args[2]),
+        _ => {
+            print_help();
+            return;
+        },
+    };
 
     blog.build();
     blog.save_archive();
