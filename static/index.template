@@ -1,22 +1,32 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <title> Some thoughts </title>
         <link rel="stylesheet" href="styles.css">
     </head>
 
     <body>
         <div class="center"">
-            <h1> Abigail Adegbiji </h1>
+            <h1> Some thoughts </h1>
             <a href="https://github.com/aabiji"> Github </a>
             <a href="rss.xml"> RSS </a>
             <p>
-                👋 Hi! <br>
-                I'm 15 and I go by @aabiji online.
-                I love programming.
-                When I'm not programming I'm reading, listening to music
-                or just relaxing. Here's the articles I've writen:
+                👋 Hi! My name's Abigail. I'm a 15 year old student currently based in
+                Canada.
+                <br><br>
+                I love to code.
+                I'm interested in the lower levels of the software stack. For
+                example, things like operating systems, compilers, 
+                or just lower level libraries in general.
+                <br><br>
+                Outside of programming I enjoy reading, writing and listening to music.
+                <br><br>
+                I'm not an "expert" in anything, and I'm always willing to
+                improve and grow. If you want to reach out you can contact
+                me through email at <a>adegbijiabigail@gmail.com</a>.
             </p>
 
+            <h2> Writings </h2>
             <ul>
             {% for title, post in posts %}
                 <li><a href="{{ post.path }}"> {{ title }} </a></li>

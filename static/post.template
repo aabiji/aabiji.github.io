@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <title> Some thoughts </title>
         <link rel="stylesheet" href="styles.css">
         <link rel="stylesheet" href="highlightjs/monokai.css">
         <script src="highlightjs/highlight.min.js"></script>

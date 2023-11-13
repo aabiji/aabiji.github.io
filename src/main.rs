@@ -20,7 +20,7 @@ const HOME_TEMPLATE: &str   = "static/index.template";
 const POST_TEMPLATE: &str   = "static/post.template";
 
 const BLOG_URL: &str        = "https://aabiji.github.io/";
-const BLOG_TITLE: &str      = "Abigail Adegbiji's blog";
+const BLOG_TITLE: &str      = "Some thoughts";
 
 fn check_paths() {
     if !Path::new(HTML_DIRECTORY).exists() {
