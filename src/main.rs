@@ -112,7 +112,7 @@ impl Post {
 
         let path = title.replace(" ", "_") + ".html";
 
-        let wpm = 200.0; // Number of words the average person reads
+        let wpm = 100.0; // Number of words the average person reads
         let words = (get_word_count(&markdown) as f64) / wpm;
         let read_time = format!("{} min", words as i32);
 

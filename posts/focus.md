@@ -13,7 +13,7 @@ Focus is 3 things integrated into 1 app:
   actionable sub-tasks.
 - It's a music player
   I like listening to music (without lyrics) while I work. Having music in the
-  background sets a nice ambience and helps me focus.
+  background sets a nice ambience and helps me focus. The lofi beats is calming and it sets the tempo at which I operate.
 - It's a website blocker
   This is probably the most important feature. From the moment I hit the play
   button, it blocks all the sites I've defined in the json config. When I try to 

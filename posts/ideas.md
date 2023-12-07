@@ -1,0 +1,1 @@
+- first of all, explain how this blog works
