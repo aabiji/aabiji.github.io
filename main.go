@@ -28,6 +28,7 @@ func inDirectory(directory, file string) bool {
 }
 
 // Get the full path to local file paths
+// TODO: the full paths should be urls
 func getFullPath(path string) ([]byte, error) {
 	pathParts := strings.Split(path, ".")
 	extension := pathParts[len(pathParts)-1]

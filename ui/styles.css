@@ -1,5 +1,4 @@
 :root {
-    --heading-color: #a9dc76;
     --link-color: #f24973;
     --link-active-color: #d94167;
     --dimmed: #aaa;
@@ -9,23 +8,14 @@ body {
     font-family: Helvetica, Arial, sans-serif;
 }
 
+h2 {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
 a {
     text-decoration: none;
     color: var(--link-color);
-}
-
-a:hover {
-    color: var(--link-active-color);
-}
-
-h1, h2, h3, h4, h5, h6 {
-    color: var(--heading-color);
-}
-
-h1, h2, h3, h4, h5, h6, ul, ol {
-    align-self: flex-start;
-    margin-top: 0px;
-    margin-bottom: 0px;
 }
 
 ul, ol {
@@ -39,6 +29,17 @@ img {
 
 p, li {
     line-height: 2;
+}
+
+hr {
+    width: 100%;
+    height: 1px;
+    margin-top: -20px;
+    border-color: var(--link-active-color);
+}
+
+a:hover {
+    color: var(--link-active-color);
 }
 
 li::marker, ul::marker {
@@ -59,25 +60,21 @@ li::marker, ul::marker {
     margin-top: 25px;
 }
 
-.pathbar {
+.navbar {
+    display: flex;
+    width: fit-content;
     width: 100%;
     margin-bottom: 25px;
-    padding-left: 3px;
+    justify-content: space-between;
+}
 
-    a {
-        font-size: 1.08rem;
-        margin-right: 10px;
-        font-weight: bold;
-    }
+.navbar a {
+    font-size: 1.08rem;
+    font-weight: bold;
+    margin-right: 15px;
+}
 
-    .lhs a {
-        float: left;
-        color: var(--link-color);
-    }
-
-    .rhs {
-        float: right;
-        a { color: var(--dimmed); }
-        a:hover { color: var(--link-active-color); }
-    }
+.title {
+    display: flex;
+    justify-content: space-between;
 }
