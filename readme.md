@@ -1,5 +1,4 @@
 
-
 Mini Hugo:
 - We have a bunch of markdown files in the folder
 - We have a landing page (index.md) which will be turned into index.html
