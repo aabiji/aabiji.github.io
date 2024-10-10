@@ -1,8 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"errors"
-	"fmt"
+	"html/template"
 	"os"
 	"strings"
 
@@ -28,13 +29,14 @@ func onlyContains(str string, char byte) bool {
 	return true
 }
 
-type PostHeader struct {
-	Info     map[string]string
-	endIndex int // Index where the post header ends
+type Post struct {
+	Content     string
+	Info        map[string]string
+	headerIndex int // Index where the post header ends
 }
 
-func parsePostHeader(source string) (PostHeader, error) {
-	header := PostHeader{Info: make(map[string]string, 1)}
+func parsePostHeader(source string) (Post, error) {
+	post := Post{Info: make(map[string]string, 1)}
 	lines := strings.Split(source, "\n")
 
 	for _, line := range lines {
@@ -44,59 +46,77 @@ func parsePostHeader(source string) (PostHeader, error) {
 		}
 
 		// A post header ends with a horizantal line separator
-		header.endIndex += len(line) + 1
+		post.headerIndex += len(line) + 1
 		if onlyContains(line, '-') {
 			break
 		}
 
 		pair := strings.Split(line, ":")
 		if len(pair) != 2 {
-			return PostHeader{}, errors.New("INVALID KEY VALUE")
+			return Post{}, errors.New("INVALID KEY VALUE")
 		}
 
 		key := strings.Trim(pair[0], " ")
 		key = strings.ToLower(key)
 		value := strings.Trim(pair[1], " ")
-		header.Info[key] = value
+		post.Info[key] = value
 	}
 
-	return header, nil
+	return post, nil
 }
 
-func transpileMarkdown(source string) ([]byte, error) {
+func transpileMarkdown(source string) (string, error) {
 	p := parser.NewWithExtensions(parser.CommonExtensions)
 	document := p.Parse([]byte(source))
 	options := html.RendererOptions{Flags: html.CommonFlags}
 	renderer := html.NewRenderer(options)
-	return markdown.Render(document, renderer), nil
+	output := markdown.Render(document, renderer)
+	return string(output), nil
+}
+
+func buildPost(t *template.Template, inPath string, outPath string) error {
+	source, err := readFile(inPath)
+	if err != nil {
+		return err
+	}
+
+	post, err := parsePostHeader(source)
+	if err != nil {
+		return err
+	}
+
+	content := source[post.headerIndex:]
+	post.Content, err = transpileMarkdown(content)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	t.Execute(writer, post)
+	err = writer.Flush()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func main() {
-	source, err := readFile("home.md")
+	templateSource, err := readFile("template.html")
 	if err != nil {
 		panic(err)
 	}
-	header, err := parsePostHeader(source)
+
+	t := template.New("Article")
+	t = template.Must(t.Parse(templateSource))
+	err = buildPost(t, "home.md", "home.html")
 	if err != nil {
 		panic(err)
 	}
-	htmlSource, err := transpileMarkdown(source[header.endIndex:])
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(htmlSource))
-	// TODO: make this less dodgy
-	//htmlOutput := transpileMarkdown([]byte(post.Content))
-	//post.Content = string(htmlOutput)
-	//
-	//builder := new(strings.Builder)
-	//t := template.New("Article")
-	//t = template.Must(t.Parse(string(templateFile)))
-	//t.Execute(builder, post)
-	//
-	//// Output html
-	//err = os.WriteFile("home.html", []byte(builder.String()), 0777)
-	//if err != nil {
-	//	panic(err)
-	//}
 }
