@@ -1,8 +1,12 @@
 package main
 
+// TODO: setup github pages site
+// TODO: fix links to other html files and asset files
+// TODO: write first article and blog index
+
 import (
-	"bufio"
 	"errors"
+	"fmt"
 	"html/template"
 	"os"
 	"strings"
@@ -30,7 +34,7 @@ func onlyContains(str string, char byte) bool {
 }
 
 type Post struct {
-	Content     string
+	Content     template.HTML
 	Info        map[string]string
 	headerIndex int // Index where the post header ends
 }
@@ -40,8 +44,8 @@ func parsePostHeader(source string) (Post, error) {
 	lines := strings.Split(source, "\n")
 
 	for _, line := range lines {
-		// Ignore empty lines
-		if len(strings.Trim(line, " ")) == 0 {
+		line = strings.TrimSpace(line)
+		if len(line) == 0 { // Ignore empty lines
 			continue
 		}
 
@@ -65,13 +69,31 @@ func parsePostHeader(source string) (Post, error) {
 	return post, nil
 }
 
+func indentHtml(htmlOutput []byte, numSpaces int) string {
+	output := ""
+	indent := strings.Repeat(" ", numSpaces)
+	lines := strings.Split(string(htmlOutput), "\n")
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if len(line) == 0 {
+			continue // ignore empty lines
+		}
+		if i != 0 { // The first line should already be indented
+			output += indent
+		}
+		output += line + "\n"
+	}
+	return output
+}
+
 func transpileMarkdown(source string) (string, error) {
 	p := parser.NewWithExtensions(parser.CommonExtensions)
 	document := p.Parse([]byte(source))
 	options := html.RendererOptions{Flags: html.CommonFlags}
 	renderer := html.NewRenderer(options)
 	output := markdown.Render(document, renderer)
-	return string(output), nil
+	return indentHtml(output, 8), nil
+
 }
 
 func buildPost(t *template.Template, inPath string, outPath string) error {
@@ -86,36 +108,55 @@ func buildPost(t *template.Template, inPath string, outPath string) error {
 	}
 
 	content := source[post.headerIndex:]
-	post.Content, err = transpileMarkdown(content)
+	output, err := transpileMarkdown(content)
 	if err != nil {
 		return err
 	}
+	post.Content = template.HTML(output)
 
-	file, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR, 0644)
+	file, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0664)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+	return t.Execute(file, post)
+}
 
-	writer := bufio.NewWriter(file)
-	t.Execute(writer, post)
-	err = writer.Flush()
+func newTemplate(path, id string) (*template.Template, error) {
+	templateSource, err := readFile(path)
+	if err != nil {
+		return nil, err
+	}
+	t := template.New(id)
+	t = template.Must(t.Parse(templateSource))
+	return t, nil
+}
+
+func buildPosts(t *template.Template) error {
+	entries, err := os.ReadDir("posts")
 	if err != nil {
 		return err
+	}
+
+	for _, entry := range entries {
+		pathParts := strings.Split(entry.Name(), ".")
+		inPath := fmt.Sprintf("posts/%s", entry.Name())
+		outPath := fmt.Sprintf("html/%s.html", pathParts[0])
+		err = buildPost(t, inPath, outPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func main() {
-	templateSource, err := readFile("template.html")
+	t, err := newTemplate("template.html", "Article")
 	if err != nil {
 		panic(err)
 	}
-
-	t := template.New("Article")
-	t = template.Must(t.Parse(templateSource))
-	err = buildPost(t, "home.md", "home.html")
+	err = buildPosts(t)
 	if err != nil {
 		panic(err)
 	}

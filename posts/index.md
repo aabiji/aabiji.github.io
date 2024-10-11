@@ -1,5 +1,4 @@
-Title: Home
-Date: October 10, 2024
+Title: Index
 ---
 
 👋 Hey! I'm Abigail. I'm a student who's interested in programming and piano.
@@ -10,3 +9,8 @@ Date: October 10, 2024
 - [**Weight loss**]()
 - [**Asteroid mining**]()
 - [**Technical deepdive**]()
+
+I'm taking about something here
+some more here
+
+bla bla bla

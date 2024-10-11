@@ -3,7 +3,7 @@
 <head>
     <title> Blog title </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../assets/styles.css">
 </head>
 <body>
     <div class="content">
@@ -14,15 +14,13 @@
                 <!--TODO: add resume-->
             </div>
         </div>
-
-        {{if ne .Title "Home"}}
+        {{if ne (index .Info "title") "Index"}}
         <div class="title">
-            <h2> {{ .Title }} </h2>
-            <p> {{ .Date }}</p>
+            <h2> {{ (index .Info "title") }} </h2>
+            <p> {{ (index .Info "date") }}</p>
         </div>
         <hr>
         {{end}}
-
         {{.Content}}
     </div>
 </body>
