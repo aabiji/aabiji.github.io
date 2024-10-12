@@ -1,9 +1,5 @@
 package main
 
-// TODO: setup github pages site
-// TODO: fix links to other html files and asset files
-// TODO: write first article and blog index
-
 import (
 	"errors"
 	"fmt"
@@ -36,6 +32,7 @@ func onlyContains(str string, char byte) bool {
 type Post struct {
 	Content     template.HTML
 	Info        map[string]string
+	StylesPath  string
 	headerIndex int // Index where the post header ends
 }
 
@@ -114,6 +111,11 @@ func buildPost(t *template.Template, inPath string, outPath string) error {
 	}
 	post.Content = template.HTML(output)
 
+	post.StylesPath = "assets/styles.css"
+	if outPath != "index.html" {
+		post.StylesPath = "../" + post.StylesPath
+	}
+
 	file, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0664)
 	if err != nil {
 		return err
@@ -142,6 +144,12 @@ func buildPosts(t *template.Template) error {
 		pathParts := strings.Split(entry.Name(), ".")
 		inPath := fmt.Sprintf("posts/%s", entry.Name())
 		outPath := fmt.Sprintf("html/%s.html", pathParts[0])
+
+		// Github pages requires the index.html to be in the branch root
+		if pathParts[0] == "index" {
+			outPath = fmt.Sprintf("%s.html", pathParts[0])
+		}
+
 		err = buildPost(t, inPath, outPath)
 		if err != nil {
 			return err
@@ -152,7 +160,7 @@ func buildPosts(t *template.Template) error {
 }
 
 func main() {
-	t, err := newTemplate("template.html", "Article")
+	t, err := newTemplate("assets/template.html", "Article")
 	if err != nil {
 		panic(err)
 	}

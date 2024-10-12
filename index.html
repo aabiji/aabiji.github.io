@@ -3,7 +3,7 @@
 <head>
     <title> Blog title </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../assets/styles.css">
+    <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
     <div class="content">
@@ -11,17 +11,18 @@
             <a href="https://example.com">Abigail Adegbiji</a>
             <div class="links">
                 <a href="https://github.com/aabiji">Github</a>
-                <!--TODO: add resume-->
+                
             </div>
         </div>
-        {{if ne (index .Info "title") "Index"}}
-        <div class="title">
-            <h2> {{ (index .Info "title") }} </h2>
-            <p> {{ (index .Info "date") }}</p>
-        </div>
-        <hr>
-        {{end}}
-        {{.Content}}
+        
+        <p>👋 Hey! I&rsquo;m Abigail.</p>
+        <p>I&rsquo;m currently a student who&rsquo;s interested in programming and piano.
+        This is the place where I publish my thoughts.</p>
+        <h2>Some of my thoughts</h2>
+        <ul>
+        <li><a href="example.md">A test article</a></li>
+        </ul>
+
     </div>
 </body>
 </html>

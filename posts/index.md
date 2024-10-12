@@ -1,16 +1,10 @@
 Title: Index
 ---
 
-👋 Hey! I'm Abigail. I'm a student who's interested in programming and piano.
+👋 Hey! I'm Abigail.
 
-![Banner image](https://images.unsplash.com/photo-1668682943720-8f0550431490?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)
+I'm currently a student who's interested in programming and piano.
+This is the place where I publish my thoughts.
 
-- [**Growing up**]()
-- [**Weight loss**]()
-- [**Asteroid mining**]()
-- [**Technical deepdive**]()
-
-I'm taking about something here
-some more here
-
-bla bla bla
+## Some of my thoughts
+- [A test article](example.md)

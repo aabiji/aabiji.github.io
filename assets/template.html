@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title> Blog title </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{.StylesPath}}">
+</head>
+<body>
+    <div class="content">
+        <div class="navbar">
+            <a href="https://example.com">Abigail Adegbiji</a>
+            <div class="links">
+                <a href="https://github.com/aabiji">Github</a>
+                <!--TODO: add resume-->
+            </div>
+        </div>
+        {{if ne (index .Info "title") "Index"}}
+        <div class="title">
+            <h2> {{ (index .Info "title") }} </h2>
+            <p> {{ (index .Info "date") }}</p>
+        </div>
+        <hr>
+        {{end}}
+        {{.Content}}
+    </div>
+</body>
+</html>
