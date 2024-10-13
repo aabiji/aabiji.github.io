@@ -1,7 +1,10 @@
 // A tiny static site generator -- it basically just
 // transpiles all the markdown files in the posts folder
 // to html and outputs them to the html folder. It's really basic,
-// but it works well for my purposes.
+// but it works well for my purposes. The workflow involves
+// writing a markdown file in the posts folder, then running
+// `go run .` to build the site.
+// TODO: maybe be smarter and automatically delete unused files
 
 package main
 
