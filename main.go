@@ -117,7 +117,7 @@ func fixRelativeFilPaths(document ast.Node) ast.Node {
 		if extension == "md" {
 			dest = fmt.Sprintf("html/%s.html", pathParts[0])
 		} else {
-			dest = "assets/" + dest
+			dest = "/assets/" + dest
 		}
 
 		if isLink {
