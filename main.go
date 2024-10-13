@@ -1,13 +1,20 @@
+// A tiny static site generator -- it basically just
+// transpiles all the markdown files in the posts folder
+// to html and outputs them to the html folder. It's really basic,
+// but it works well for my purposes.
+
 package main
 
 import (
 	"errors"
 	"fmt"
 	"html/template"
+	"net/url"
 	"os"
 	"strings"
 
 	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 )
@@ -83,9 +90,50 @@ func indentHtml(htmlOutput []byte, numSpaces int) string {
 	return output
 }
 
+func fixRelativeFilPaths(document ast.Node) ast.Node {
+	ast.WalkFunc(document, func(node ast.Node, entering bool) ast.WalkStatus {
+		link, isLink := node.(*ast.Link)
+		img, isImage := node.(*ast.Image)
+		if (!isLink && !isImage) || !entering {
+			return ast.GoToNext
+		}
+
+		dest := ""
+		if isLink {
+			dest = string(link.Destination)
+		} else {
+			dest = string(img.Destination)
+		}
+
+		// Ignore valid urls
+		_, err := url.ParseRequestURI(dest)
+		if err == nil || len(dest) == 0 {
+			return ast.GoToNext
+		}
+
+		// Links to markdown files should really point to the corresponding html files
+		pathParts := strings.Split(dest, ".")
+		extension := pathParts[len(pathParts)-1]
+		if extension == "md" {
+			dest = fmt.Sprintf("html/%s.html", pathParts[0])
+		} else {
+			dest = "assets/" + dest
+		}
+
+		if isLink {
+			link.Destination = []byte(dest)
+		} else {
+			img.Destination = []byte(dest)
+		}
+		return ast.GoToNext
+	})
+	return document
+}
+
 func transpileMarkdown(source string) (string, error) {
 	p := parser.NewWithExtensions(parser.CommonExtensions)
 	document := p.Parse([]byte(source))
+	document = fixRelativeFilPaths(document)
 	options := html.RendererOptions{Flags: html.CommonFlags}
 	renderer := html.NewRenderer(options)
 	output := markdown.Render(document, renderer)
