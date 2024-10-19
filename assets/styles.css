@@ -1,8 +1,5 @@
 body {
     font-family: "PT Serif";
-    min-height: 100vh;
-    margin: 0;
-    display: flex;
 }
 
 a {
@@ -30,56 +27,96 @@ code {
     display: block;
 }
 
-.left {
-    width: 25%;
-    height: fit-content;
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
 .left img {
-    width: 100px;
-    height: 100px;
     border-radius: 50%;
     display: block;
 }
 
-.text-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -70%);
-    color: white;
-    font-weight: bold;
-    text-align: center;
-    opacity: 0;
+/* Mobile view */
+@media only screen and (max-width: 850px) {
+    .left {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        margin: 0 auto;
+        width: 90%;
+    }
+
+    .img-container {
+        margin-right: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .left img {
+        width: 50px;
+        height: 50px;
+        margin-right: 10px;
+    }
+
+    .right {
+        width: 90%;
+        margin: 0 auto;
+    }
 }
 
-.img-container:hover img {
-    filter: blur(3px);
-}
+/* Desktop view */
+@media only screen and (min-width: 850px) {
+    body {
+        min-height: 100vh;
+        margin: 0;
+        display: flex;
+    }
 
-.img-container:hover .text-overlay {
-    opacity: 0.9;
-}
+    .left {
+        width: 25%;
+        height: fit-content;
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
 
-.right {
-    width: 75%;
-    float: right;
-    display: flex;
-    min-height: 100vh;
-    overflow-y: auto;
-    margin-left: auto;
-}
+    .left img {
+        width: 100px;
+        height: 100px;
+    }
 
-.content {
-    width: 700px;
-    margin-left: 1%;
-    margin-top: auto;
-    margin-bottom: auto;
+    .text-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        opacity: 0;
+    }
+
+    .img-container:hover img {
+        filter: blur(3px);
+    }
+
+    .img-container:hover .text-overlay {
+        opacity: 0.9;
+    }
+
+    .right {
+        width: 75%;
+        float: right;
+        display: flex;
+        min-height: 100vh;
+        overflow-y: auto;
+        margin-left: auto;
+    }
+
+    .content {
+        width: 700px;
+        margin-left: 1%;
+        margin-top: auto;
+        margin-bottom: auto;
+    }
 }
