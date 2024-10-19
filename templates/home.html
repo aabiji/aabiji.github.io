@@ -14,7 +14,7 @@
                 <!--TODO: add resume-->
             </div>
         </div>
-        {{if ne (index .Info "title") "Index"}}
+        {{if not .IsMainPage}}
         <div class="title">
             <h2> {{ (index .Info "title") }} </h2>
             <p> {{ (index .Info "date") }}</p>

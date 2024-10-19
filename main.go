@@ -4,12 +4,16 @@
 // but it works well for my purposes. The workflow involves
 // writing a markdown file in the posts folder, then running
 // `go run .` to build the site.
+// TODO; use filepath.Join
 // TODO: maybe be smarter and automatically delete unused files
+// TODO: better blog ui
+// TODO: what if the assets were linking to don't exist?
+// TODO: I also don't want to have to express certain parts of the ui in the template
+// TODO: add code syntax highlighting
 
 package main
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"net/url"
@@ -23,11 +27,12 @@ import (
 )
 
 func readFile(path string) (string, error) {
-	contents, err := os.ReadFile(path)
+	file, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	return string(contents), nil
+	contents := string(file)
+	return strings.TrimSpace(contents), nil
 }
 
 func onlyContains(str string, char byte) bool {
@@ -39,47 +44,18 @@ func onlyContains(str string, char byte) bool {
 	return true
 }
 
-type Post struct {
-	Content     template.HTML
-	Info        map[string]string
-	StylesPath  string
-	headerIndex int // Index where the post header ends
+func getFileParts(path string) (string, string) {
+	pathParts := strings.Split(path, "/")
+	file := pathParts[len(pathParts)-1]
+	fileParts := strings.Split(file, ".")
+	// Return the file name and extension
+	return fileParts[0], fileParts[1]
 }
 
-func parsePostHeader(source string) (Post, error) {
-	post := Post{Info: make(map[string]string, 1)}
-	lines := strings.Split(source, "\n")
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 { // Ignore empty lines
-			continue
-		}
-
-		// A post header ends with a horizantal line separator
-		post.headerIndex += len(line) + 1
-		if onlyContains(line, '-') {
-			break
-		}
-
-		pair := strings.Split(line, ":")
-		if len(pair) != 2 {
-			return Post{}, errors.New("INVALID KEY VALUE")
-		}
-
-		key := strings.Trim(pair[0], " ")
-		key = strings.ToLower(key)
-		value := strings.Trim(pair[1], " ")
-		post.Info[key] = value
-	}
-
-	return post, nil
-}
-
-func indentHtml(htmlOutput []byte, numSpaces int) string {
-	output := ""
+func indentLines(content []byte, numSpaces int) string {
 	indent := strings.Repeat(" ", numSpaces)
-	lines := strings.Split(string(htmlOutput), "\n")
+	lines := strings.Split(string(content), "\n")
+	output := ""
 	for i, line := range lines {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
@@ -91,6 +67,104 @@ func indentHtml(htmlOutput []byte, numSpaces int) string {
 		output += line + "\n"
 	}
 	return output
+}
+
+func transpileMarkdown(source string, modifier func(ast.Node) ast.Node) (string, error) {
+	p := parser.NewWithExtensions(parser.CommonExtensions)
+	document := p.Parse([]byte(source))
+	document = modifier(document)
+	options := html.RendererOptions{Flags: html.CommonFlags}
+	renderer := html.NewRenderer(options)
+	output := markdown.Render(document, renderer)
+	return indentLines(output, 8), nil
+
+}
+
+type Templates = map[string]*template.Template
+
+func loadTemplates(folder string) (Templates, error) {
+	entries, err := os.ReadDir(folder)
+	if err != nil {
+		return nil, err
+	}
+
+	templates := make(Templates, 1)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		path := folder + "/" + entry.Name()
+		source, err := readFile(path)
+		if err != nil {
+			return nil, err
+		}
+
+		t := template.New(entry.Name())
+		t = template.Must(t.Parse(source))
+		base, _ := getFileParts(entry.Name())
+		templates[base] = t
+	}
+
+	return templates, nil
+}
+
+type Post struct {
+	Content           template.HTML
+	contentStartIndex int
+	Info              map[string]string
+	IsMainPage        bool
+	StylesPath        string
+}
+
+// Parse the header at the top of each blog post.
+// Each header is enclosed by horizantal rules.
+// This would be an example of a header:
+//
+// ---
+// Title: Something
+// Date: Some date
+// ---
+func parsePostHeader(source string) (Post, error) {
+	post := Post{Info: make(map[string]string, 1)}
+	lines := strings.Split(source, "\n")
+	inHeader := false
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if len(line) == 0 { // Ignore empty lines
+			continue
+		}
+
+		post.contentStartIndex += len(line) + 1
+		isHorizantalRule := onlyContains(line, '-')
+		if isHorizantalRule && !inHeader {
+			inHeader = true
+			continue // Skip the opening ---
+		} else if isHorizantalRule && inHeader {
+			break // Stop on the ending ---
+		}
+
+		// Parse the key value pairs in the header
+		if inHeader {
+			pair := strings.Split(line, ":")
+			if len(pair) != 2 {
+				return Post{}, fmt.Errorf("invalid key value pair: %s", line)
+			}
+			key := strings.ToLower(strings.TrimSpace(pair[0]))
+			value := strings.Trim(pair[1], " ")
+			post.Info[key] = value
+
+			if key == "title" && strings.ToLower(value) == "main" {
+				post.IsMainPage = true
+			}
+		}
+	}
+
+	if post.contentStartIndex == len(source) {
+		return Post{}, fmt.Errorf("post does not contain a header")
+	}
+	return post, nil
 }
 
 func fixRelativeFilPaths(document ast.Node) ast.Node {
@@ -115,10 +189,9 @@ func fixRelativeFilPaths(document ast.Node) ast.Node {
 		}
 
 		// Links to markdown files should really point to the corresponding html files
-		pathParts := strings.Split(dest, ".")
-		extension := pathParts[len(pathParts)-1]
+		base, extension := getFileParts(dest)
 		if extension == "md" {
-			dest = fmt.Sprintf("html/%s.html", pathParts[0])
+			dest = fmt.Sprintf("html/%s.html", base)
 		} else {
 			dest = "https://aabiji.github.io/assets/" + dest
 		}
@@ -133,18 +206,7 @@ func fixRelativeFilPaths(document ast.Node) ast.Node {
 	return document
 }
 
-func transpileMarkdown(source string) (string, error) {
-	p := parser.NewWithExtensions(parser.CommonExtensions)
-	document := p.Parse([]byte(source))
-	document = fixRelativeFilPaths(document)
-	options := html.RendererOptions{Flags: html.CommonFlags}
-	renderer := html.NewRenderer(options)
-	output := markdown.Render(document, renderer)
-	return indentHtml(output, 8), nil
-
-}
-
-func buildPost(t *template.Template, inPath string, outPath string) error {
+func buildPost(templates Templates, inPath string, outPath string) error {
 	source, err := readFile(inPath)
 	if err != nil {
 		return err
@@ -155,15 +217,15 @@ func buildPost(t *template.Template, inPath string, outPath string) error {
 		return err
 	}
 
-	content := source[post.headerIndex:]
-	output, err := transpileMarkdown(content)
+	source = source[post.contentStartIndex:]
+	output, err := transpileMarkdown(source, fixRelativeFilPaths)
 	if err != nil {
 		return err
 	}
 	post.Content = template.HTML(output)
 
 	post.StylesPath = "assets/styles.css"
-	if outPath != "index.html" {
+	if !post.IsMainPage {
 		post.StylesPath = "../" + post.StylesPath
 	}
 
@@ -172,36 +234,50 @@ func buildPost(t *template.Template, inPath string, outPath string) error {
 		return err
 	}
 	defer file.Close()
+
+	id, exists := post.Info["template"]
+	if !exists {
+		return fmt.Errorf("%s : template not specified", inPath)
+	}
+
+	t, exists := templates[id]
+	if !exists {
+		return fmt.Errorf("%s is not a template", id)
+	}
+
 	return t.Execute(file, post)
 }
 
-func newTemplate(path, id string) (*template.Template, error) {
-	templateSource, err := readFile(path)
+// TODO: refactor this
+func buildPosts() error {
+	templates, err := loadTemplates("templates")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	t := template.New(id)
-	t = template.Must(t.Parse(templateSource))
-	return t, nil
-}
 
-func buildPosts(t *template.Template) error {
 	entries, err := os.ReadDir("posts")
 	if err != nil {
 		return err
 	}
 
 	for _, entry := range entries {
-		pathParts := strings.Split(entry.Name(), ".")
-		inPath := fmt.Sprintf("posts/%s", entry.Name())
-		outPath := fmt.Sprintf("html/%s.html", pathParts[0])
-
-		// Github pages requires the index.html to be in the branch root
-		if pathParts[0] == "index" {
-			outPath = fmt.Sprintf("%s.html", pathParts[0])
+		if entry.IsDir() {
+			continue
 		}
 
-		err = buildPost(t, inPath, outPath)
+		base, extension := getFileParts(entry.Name())
+		if extension != "md" {
+			continue
+		}
+
+		inPath := fmt.Sprintf("posts/%s", entry.Name())
+		outPath := fmt.Sprintf("html/%s.html", base)
+		if base == "index" {
+			// Github pages requires the index.html to be in the branch root
+			outPath = fmt.Sprintf("%s.html", base)
+		}
+
+		err = buildPost(templates, inPath, outPath)
 		if err != nil {
 			return err
 		}
@@ -211,11 +287,7 @@ func buildPosts(t *template.Template) error {
 }
 
 func main() {
-	t, err := newTemplate("assets/template.html", "Article")
-	if err != nil {
-		panic(err)
-	}
-	err = buildPosts(t)
+	err := buildPosts()
 	if err != nil {
 		panic(err)
 	}

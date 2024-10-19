@@ -1,4 +1,6 @@
-Title: Index
+---
+title: main
+template: home
 ---
 
 👋 Hey! I'm Abigail.
