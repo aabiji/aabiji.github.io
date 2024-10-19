@@ -1,7 +1,4 @@
----
-title: main
-template: home
----
+# Abigail Adegbiji
 
 👋 Hey! I'm Abigail.
 

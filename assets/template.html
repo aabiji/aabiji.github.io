@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html>
     <head>
-        
+        <!--Syntax highlighting-->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script>
 
-        
+        <!--PT-Serif font-->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 
-        <title>  Abigail Adegbiji </title>
+        <title>  {{ .Title }} </title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="assets/styles.css">
+        <link rel="stylesheet" href="{{.StylePath}}">
     </head>
 
     <body>
@@ -26,11 +26,7 @@
         </div>
 
         <div class="right">
-            <div class="content"><h1>Abigail Adegbiji</h1>
-        <p>👋 Hey! I&rsquo;m Abigail.</p>
-        <p>I&rsquo;m currently a student who&rsquo;s interested in programming and piano.
-        This is the place where I publish my thoughts.</p>
-</div>
+            <div class="content">{{.HTMLContent}}</div>
         </div>
     </body>
 </html>

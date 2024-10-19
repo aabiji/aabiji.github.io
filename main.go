@@ -1,4 +1,4 @@
-// A basic static site generator. It transpiles all the markdown
+// A simple static site generator. It transpiles all the markdown
 // files in the posts/ folder to html files then outputs them into the
 // html/ folder.
 
@@ -45,15 +45,6 @@ func getFileParts(path string) (string, string) {
 	return fileParts[0], fileParts[1]
 }
 
-func onlyContains(str string, char byte) bool {
-	for i := 0; i < len(str); i++ {
-		if str[i] != char {
-			return false
-		}
-	}
-	return true
-}
-
 func indentLines(content []byte, numSpaces int) string {
 	indent := strings.Repeat(" ", numSpaces)
 	lines := strings.Split(string(content), "\n")
@@ -90,39 +81,10 @@ func markdownToHTML(source string, t Transformer) (string, error) {
 var (
 	ASSET_FOLDER       = "assets"
 	POSTS_FOLDER       = "posts"
-	TEMPLATE_FOLDER    = "templates"
+	TEMPLATE_PATH      = "assets/template.html"
 	OUTPUT_FOLDER      = "html"
 	TEMP_OUTPUT_FOLDER = ""
 )
-
-type Templates = map[string]*template.Template
-
-func loadTemplates(folder string) (Templates, error) {
-	entries, err := os.ReadDir(folder)
-	if err != nil {
-		return nil, err
-	}
-
-	templates := make(Templates, 1)
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		path := fmt.Sprintf("%s/%s", folder, entry.Name())
-		source, err := readFile(path)
-		if err != nil {
-			return nil, err
-		}
-
-		t := template.New(entry.Name())
-		t = template.Must(t.Parse(source))
-		base, _ := getFileParts(entry.Name())
-		templates[base] = t
-	}
-
-	return templates, nil
-}
 
 func getDestination(node ast.Node) string {
 	switch n := node.(type) {
@@ -181,89 +143,32 @@ func fixRelativeFilPaths(document ast.Node) (ast.Node, error) {
 
 type Post struct {
 	HTMLContent template.HTML
-	Info        map[string]string
-	IsMainPage  bool
-	StylesPath  string
-
-	contentStartIndex int
-	inPath            string
-	outPath           string
-}
-
-// Parse the header at the top of each blog post.
-// Each header is enclosed by horizantal rules.
-// This would be an example of a header:
-//
-// ---
-// Title: Something
-// Date: Some date
-// ---
-func (post *Post) parseHeader(source string) error {
-	lines := strings.Split(source, "\n")
-	inHeader := false
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 { // Ignore empty lines
-			continue
-		}
-
-		post.contentStartIndex += len(line) + 1
-		isHorizantalRule := onlyContains(line, '-')
-		if isHorizantalRule && !inHeader {
-			inHeader = true
-			continue // Skip the opening ---
-		} else if isHorizantalRule && inHeader {
-			break // Stop on the ending ---
-		}
-
-		// Parse the key value pairs in the header
-		if inHeader {
-			pair := strings.Split(line, ":")
-			if len(pair) != 2 {
-				return fmt.Errorf("%s : invalid key value pair: %s", post.inPath, line)
-			}
-			key := strings.ToLower(strings.TrimSpace(pair[0]))
-			value := strings.Trim(pair[1], " ")
-			post.Info[key] = value
-		}
-	}
-
-	base, _ := getFileParts(post.inPath)
-	post.IsMainPage = base == "index"
-	if _, exists := post.Info["date"]; !exists && !post.IsMainPage {
-		return fmt.Errorf("%s does not contain a date", post.inPath)
-	}
-
-	if post.contentStartIndex == len(source) {
-		return fmt.Errorf("%s does not contain a header", post.inPath)
-	}
-	return nil
+	StylePath   string
+	Title       string
+	inPath      string
+	outPath     string
 }
 
 func newPost(markdownFile string) (Post, error) {
-	post := Post{}
-	post.Info = make(map[string]string, 1)
-	post.inPath = markdownFile
-	base, _ := getFileParts(markdownFile)
-	post.outPath = fmt.Sprintf("%s/%s.html", TEMP_OUTPUT_FOLDER, base)
-
 	source, err := readFile(markdownFile)
 	if err != nil {
-		return post, err
+		return Post{}, err
+	}
+	lineEnd := strings.Index(source, "\n")
+	firstLine := source[:lineEnd]
+
+	base, _ := getFileParts(markdownFile)
+	post := Post{
+		inPath:    markdownFile,
+		outPath:   fmt.Sprintf("%s/%s.html", TEMP_OUTPUT_FOLDER, base),
+		Title:     firstLine[2:],
+		StylePath: fmt.Sprintf("%s/styles.css", ASSET_FOLDER),
 	}
 
-	err = post.parseHeader(source)
-	if err != nil {
-		return post, err
+	if base != "index" {
+		post.StylePath = "../" + post.StylePath
 	}
 
-	post.StylesPath = fmt.Sprintf("%s/styles.css", ASSET_FOLDER)
-	if !post.IsMainPage {
-		post.StylesPath = "../" + post.StylesPath
-	}
-
-	source = source[post.contentStartIndex:]
 	output, err := markdownToHTML(source, fixRelativeFilPaths)
 	if err != nil {
 		return post, err
@@ -273,7 +178,7 @@ func newPost(markdownFile string) (Post, error) {
 	return post, err
 }
 
-func buildPost(post *Post, templates Templates) error {
+func buildPost(post *Post, t *template.Template) error {
 	err := ensureFolderExists(post.outPath)
 	if err != nil {
 		return err
@@ -283,26 +188,18 @@ func buildPost(post *Post, templates Templates) error {
 	if err != nil {
 		return err
 	}
+
 	defer file.Close()
-
-	id, exists := post.Info["template"]
-	if !exists {
-		return fmt.Errorf("%s : template not specified", post.inPath)
-	}
-
-	t, exists := templates[id]
-	if !exists {
-		return fmt.Errorf("%s is not a template", id)
-	}
-
 	return t.Execute(file, post)
 }
 
 func buildPosts() error {
-	templates, err := loadTemplates(TEMPLATE_FOLDER)
+	templateSource, err := readFile(TEMPLATE_PATH)
 	if err != nil {
 		return err
 	}
+	t := template.New("Site template")
+	t = template.Must(t.Parse(templateSource))
 
 	entries, err := os.ReadDir(POSTS_FOLDER)
 	if err != nil {
@@ -323,7 +220,7 @@ func buildPosts() error {
 			return err
 		}
 
-		err = buildPost(&post, templates)
+		err = buildPost(&post, t)
 		if err != nil {
 			return err
 		}
