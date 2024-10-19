@@ -1,23 +1,16 @@
-// A tiny static site generator -- it basically just
-// transpiles all the markdown files in the posts folder
-// to html and outputs them to the html folder. It's really basic,
-// but it works well for my purposes. The workflow involves
-// writing a markdown file in the posts folder, then running
-// `go run .` to build the site.
-// TODO; use filepath.Join
-// TODO: maybe be smarter and automatically delete unused files
-// TODO: better blog ui
-// TODO: what if the assets were linking to don't exist?
-// TODO: I also don't want to have to express certain parts of the ui in the template
-// TODO: add code syntax highlighting
+// A basic static site generator. It transpiles all the markdown
+// files in the posts/ folder to html files then outputs them into the
+// html/ folder.
 
 package main
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gomarkdown/markdown"
@@ -35,13 +28,13 @@ func readFile(path string) (string, error) {
 	return strings.TrimSpace(contents), nil
 }
 
-func onlyContains(str string, char byte) bool {
-	for i := 0; i < len(str); i++ {
-		if str[i] != char {
-			return false
-		}
+func ensureFolderExists(path string) error {
+	// Create the output directory if it doesn't already exist
+	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	if err != nil {
+		return err
 	}
-	return true
+	return nil
 }
 
 func getFileParts(path string) (string, string) {
@@ -50,6 +43,15 @@ func getFileParts(path string) (string, string) {
 	fileParts := strings.Split(file, ".")
 	// Return the file name and extension
 	return fileParts[0], fileParts[1]
+}
+
+func onlyContains(str string, char byte) bool {
+	for i := 0; i < len(str); i++ {
+		if str[i] != char {
+			return false
+		}
+	}
+	return true
 }
 
 func indentLines(content []byte, numSpaces int) string {
@@ -69,16 +71,29 @@ func indentLines(content []byte, numSpaces int) string {
 	return output
 }
 
-func transpileMarkdown(source string, modifier func(ast.Node) ast.Node) (string, error) {
+type Transformer func(ast.Node) (ast.Node, error)
+
+func markdownToHTML(source string, t Transformer) (string, error) {
 	p := parser.NewWithExtensions(parser.CommonExtensions)
 	document := p.Parse([]byte(source))
-	document = modifier(document)
+	document, err := t(document)
+	if err != nil {
+		return "", err
+	}
 	options := html.RendererOptions{Flags: html.CommonFlags}
 	renderer := html.NewRenderer(options)
 	output := markdown.Render(document, renderer)
 	return indentLines(output, 8), nil
 
 }
+
+var (
+	ASSET_FOLDER       = "assets"
+	POSTS_FOLDER       = "posts"
+	TEMPLATE_FOLDER    = "templates"
+	OUTPUT_FOLDER      = "html"
+	TEMP_OUTPUT_FOLDER = ""
+)
 
 type Templates = map[string]*template.Template
 
@@ -94,7 +109,7 @@ func loadTemplates(folder string) (Templates, error) {
 			continue
 		}
 
-		path := folder + "/" + entry.Name()
+		path := fmt.Sprintf("%s/%s", folder, entry.Name())
 		source, err := readFile(path)
 		if err != nil {
 			return nil, err
@@ -109,12 +124,70 @@ func loadTemplates(folder string) (Templates, error) {
 	return templates, nil
 }
 
+func getDestination(node ast.Node) string {
+	switch n := node.(type) {
+	case *ast.Link:
+		return string(n.Destination)
+	case *ast.Image:
+		return string(n.Destination)
+	default:
+		return ""
+	}
+}
+
+func setDestination(node ast.Node, dest string) {
+	switch n := node.(type) {
+	case *ast.Link:
+		n.Destination = []byte(dest)
+	case *ast.Image:
+		n.Destination = []byte(dest)
+	}
+}
+
+func fixRelativeFilPaths(document ast.Node) (ast.Node, error) {
+	var problem error
+	ast.WalkFunc(document, func(node ast.Node, entering bool) ast.WalkStatus {
+		path := getDestination(node)
+		if path == "" || !entering {
+			return ast.GoToNext
+		}
+
+		if _, err := url.ParseRequestURI(path); err == nil {
+			return ast.GoToNext // Ignore valid urls
+		}
+
+		realPath := ""
+		base, extension := getFileParts(path)
+		if extension == "md" {
+			realPath = fmt.Sprintf("%s/%s.html", OUTPUT_FOLDER, base)
+		} else {
+			realPath = fmt.Sprintf("%s/%s", ASSET_FOLDER, path)
+		}
+		setDestination(node, realPath)
+
+		// We should check if the markdown file is present and not its html output
+		if extension == "md" {
+			realPath = fmt.Sprintf("%s/%s.md", POSTS_FOLDER, base)
+		}
+
+		if _, err := os.Stat(realPath); errors.Is(err, os.ErrNotExist) {
+			problem = err
+			return ast.Terminate
+		}
+		return ast.GoToNext
+	})
+	return document, problem
+}
+
 type Post struct {
-	Content           template.HTML
+	HTMLContent template.HTML
+	Info        map[string]string
+	IsMainPage  bool
+	StylesPath  string
+
 	contentStartIndex int
-	Info              map[string]string
-	IsMainPage        bool
-	StylesPath        string
+	inPath            string
+	outPath           string
 }
 
 // Parse the header at the top of each blog post.
@@ -125,8 +198,7 @@ type Post struct {
 // Title: Something
 // Date: Some date
 // ---
-func parsePostHeader(source string) (Post, error) {
-	post := Post{Info: make(map[string]string, 1)}
+func (post *Post) parseHeader(source string) error {
 	lines := strings.Split(source, "\n")
 	inHeader := false
 
@@ -149,87 +221,65 @@ func parsePostHeader(source string) (Post, error) {
 		if inHeader {
 			pair := strings.Split(line, ":")
 			if len(pair) != 2 {
-				return Post{}, fmt.Errorf("invalid key value pair: %s", line)
+				return fmt.Errorf("%s : invalid key value pair: %s", post.inPath, line)
 			}
 			key := strings.ToLower(strings.TrimSpace(pair[0]))
 			value := strings.Trim(pair[1], " ")
 			post.Info[key] = value
-
-			if key == "title" && strings.ToLower(value) == "main" {
-				post.IsMainPage = true
-			}
 		}
+	}
+
+	base, _ := getFileParts(post.inPath)
+	post.IsMainPage = base == "index"
+	if _, exists := post.Info["date"]; !exists && !post.IsMainPage {
+		return fmt.Errorf("%s does not contain a date", post.inPath)
 	}
 
 	if post.contentStartIndex == len(source) {
-		return Post{}, fmt.Errorf("post does not contain a header")
+		return fmt.Errorf("%s does not contain a header", post.inPath)
 	}
-	return post, nil
+	return nil
 }
 
-func fixRelativeFilPaths(document ast.Node) ast.Node {
-	ast.WalkFunc(document, func(node ast.Node, entering bool) ast.WalkStatus {
-		link, isLink := node.(*ast.Link)
-		img, isImage := node.(*ast.Image)
-		if (!isLink && !isImage) || !entering {
-			return ast.GoToNext
-		}
+func newPost(markdownFile string) (Post, error) {
+	post := Post{}
+	post.Info = make(map[string]string, 1)
+	post.inPath = markdownFile
+	base, _ := getFileParts(markdownFile)
+	post.outPath = fmt.Sprintf("%s/%s.html", TEMP_OUTPUT_FOLDER, base)
 
-		dest := ""
-		if isLink {
-			dest = string(link.Destination)
-		} else {
-			dest = string(img.Destination)
-		}
-
-		// Ignore valid urls
-		_, err := url.ParseRequestURI(dest)
-		if err == nil || len(dest) == 0 {
-			return ast.GoToNext
-		}
-
-		// Links to markdown files should really point to the corresponding html files
-		base, extension := getFileParts(dest)
-		if extension == "md" {
-			dest = fmt.Sprintf("html/%s.html", base)
-		} else {
-			dest = "https://aabiji.github.io/assets/" + dest
-		}
-
-		if isLink {
-			link.Destination = []byte(dest)
-		} else {
-			img.Destination = []byte(dest)
-		}
-		return ast.GoToNext
-	})
-	return document
-}
-
-func buildPost(templates Templates, inPath string, outPath string) error {
-	source, err := readFile(inPath)
+	source, err := readFile(markdownFile)
 	if err != nil {
-		return err
+		return post, err
 	}
 
-	post, err := parsePostHeader(source)
+	err = post.parseHeader(source)
 	if err != nil {
-		return err
+		return post, err
 	}
 
-	source = source[post.contentStartIndex:]
-	output, err := transpileMarkdown(source, fixRelativeFilPaths)
-	if err != nil {
-		return err
-	}
-	post.Content = template.HTML(output)
-
-	post.StylesPath = "assets/styles.css"
+	post.StylesPath = fmt.Sprintf("%s/styles.css", ASSET_FOLDER)
 	if !post.IsMainPage {
 		post.StylesPath = "../" + post.StylesPath
 	}
 
-	file, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0664)
+	source = source[post.contentStartIndex:]
+	output, err := markdownToHTML(source, fixRelativeFilPaths)
+	if err != nil {
+		return post, err
+	}
+
+	post.HTMLContent = template.HTML(output)
+	return post, err
+}
+
+func buildPost(post *Post, templates Templates) error {
+	err := ensureFolderExists(post.outPath)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(post.outPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0664)
 	if err != nil {
 		return err
 	}
@@ -237,7 +287,7 @@ func buildPost(templates Templates, inPath string, outPath string) error {
 
 	id, exists := post.Info["template"]
 	if !exists {
-		return fmt.Errorf("%s : template not specified", inPath)
+		return fmt.Errorf("%s : template not specified", post.inPath)
 	}
 
 	t, exists := templates[id]
@@ -248,14 +298,13 @@ func buildPost(templates Templates, inPath string, outPath string) error {
 	return t.Execute(file, post)
 }
 
-// TODO: refactor this
 func buildPosts() error {
-	templates, err := loadTemplates("templates")
+	templates, err := loadTemplates(TEMPLATE_FOLDER)
 	if err != nil {
 		return err
 	}
 
-	entries, err := os.ReadDir("posts")
+	entries, err := os.ReadDir(POSTS_FOLDER)
 	if err != nil {
 		return err
 	}
@@ -264,20 +313,48 @@ func buildPosts() error {
 		if entry.IsDir() {
 			continue
 		}
-
-		base, extension := getFileParts(entry.Name())
-		if extension != "md" {
+		if _, extension := getFileParts(entry.Name()); extension != "md" {
 			continue
 		}
 
-		inPath := fmt.Sprintf("posts/%s", entry.Name())
-		outPath := fmt.Sprintf("html/%s.html", base)
-		if base == "index" {
-			// Github pages requires the index.html to be in the branch root
-			outPath = fmt.Sprintf("%s.html", base)
+		inPath := fmt.Sprintf("%s/%s", POSTS_FOLDER, entry.Name())
+		post, err := newPost(inPath)
+		if err != nil {
+			return err
 		}
 
-		err = buildPost(templates, inPath, outPath)
+		err = buildPost(&post, templates)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Move files from the temporary folder to the actual output folder
+func moveFiles() error {
+	entries, err := os.ReadDir(TEMP_OUTPUT_FOLDER)
+	if err != nil {
+		return err
+	}
+
+	os.RemoveAll(OUTPUT_FOLDER)
+	os.Mkdir(OUTPUT_FOLDER, os.ModePerm)
+
+	for _, entry := range entries {
+		inPath := fmt.Sprintf("%s/%s", TEMP_OUTPUT_FOLDER, entry.Name())
+		outPath := fmt.Sprintf("%s/%s", OUTPUT_FOLDER, entry.Name())
+		// Github pages requires the index.html file to be in the repository root
+		if entry.Name() == "index.html" {
+			outPath = "index.html"
+		}
+
+		contents, err := os.ReadFile(inPath)
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile(outPath, contents, 0664)
 		if err != nil {
 			return err
 		}
@@ -287,8 +364,25 @@ func buildPosts() error {
 }
 
 func main() {
-	err := buildPosts()
+	var err error
+
+	// We write the built html files to a temporary folder so that no
+	// existing html files are corrupted if something goes wrong
+	TEMP_OUTPUT_FOLDER, err = os.MkdirTemp("", "html")
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		return
+	}
+
+	err = buildPosts()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	err = moveFiles()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
 	}
 }
