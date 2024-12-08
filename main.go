@@ -58,7 +58,6 @@ func markdownToHTML(source string, t Transformer) (string, error) {
 	renderer := html.NewRenderer(options)
 	output := markdown.Render(document, renderer)
 	return string(output), nil
-
 }
 
 var (
@@ -108,7 +107,7 @@ func fixRelativeFilPaths(document ast.Node) (ast.Node, error) {
 		} else {
 			realPath = fmt.Sprintf("%s/%s", ASSET_FOLDER, path)
 		}
-		setDestination(node, realPath)
+		setDestination(node, "/"+realPath)
 
 		// We should check if the markdown file is present and not its html output
 		if extension == "md" {
