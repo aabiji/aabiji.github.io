@@ -1,5 +1,5 @@
 # Hi, I'm Abigail
 
-I'm currently a student interested in programming, piano and fitness.
+Here's something I've written:
 
-Welcome to the space for my thoughts.
+- [Drawing Apollonian Gaskets](gasket.md)

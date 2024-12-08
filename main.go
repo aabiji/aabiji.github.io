@@ -45,23 +45,6 @@ func getFileParts(path string) (string, string) {
 	return fileParts[0], fileParts[1]
 }
 
-func indentLines(content []byte, numSpaces int) string {
-	indent := strings.Repeat(" ", numSpaces)
-	lines := strings.Split(string(content), "\n")
-	output := ""
-	for i, line := range lines {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue // ignore empty lines
-		}
-		if i != 0 { // The first line should already be indented
-			output += indent
-		}
-		output += line + "\n"
-	}
-	return output
-}
-
 type Transformer func(ast.Node) (ast.Node, error)
 
 func markdownToHTML(source string, t Transformer) (string, error) {
@@ -74,7 +57,7 @@ func markdownToHTML(source string, t Transformer) (string, error) {
 	options := html.RendererOptions{Flags: html.CommonFlags}
 	renderer := html.NewRenderer(options)
 	output := markdown.Render(document, renderer)
-	return indentLines(output, 8), nil
+	return string(output), nil
 
 }
 
