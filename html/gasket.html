@@ -33,7 +33,7 @@
         <div class="right">
             <div class="content"><h1>Drawing Apollonian Gaskets</h1>
 
-<p><em>December 7, 2024</em></p>
+<p><em>December 9, 2024</em></p>
 
 <p>An Apollonian gasket is a fractal formed by recursively adding circles
 in the gaps between three mutually tangent circles.
@@ -49,7 +49,7 @@ It creates patterns of ever smaller circles, producing an interesting fractal st
 
 <p>We&rsquo;ll implement these rules in python.</p>
 
-<p>First, let’s define what a circle is. A circle is defined by its center point and its curvature. The curvature of a circle is the reciprocal of its radius: positive for outer circles and negative for inner circles. Two circles are considered tangent if they touch at exactly one point. We&rsquo;ll use complex numbers to represent the center of each circle, where the real part represents the x-coordinate and the imaginary part represents the y-coordinate. This simplifies the mathematical equations we&rsquo;ll soon see.</p>
+<p>First, let’s define what a circle is. A circle is defined by its center point and its curvature. The curvature of a circle is the reciprocal of its radius: positive for the outside of the circle and negative for the inside of the circle. Two circles are considered tangent if they touch at exactly one point. We&rsquo;ll use complex numbers to represent the center of each circle, where the real part represents the x-coordinate and the imaginary part represents the y-coordinate. This simplifies the mathematical equations we&rsquo;ll soon see.</p>
 
 <pre><code class="language-py">import math, cmath
 
@@ -57,24 +57,18 @@ class Circle:
     def __init__(self, x, y, curvature):
         self.center = complex(x, y)
         self.curvature = curvature
-        self.radius = abs(1 / curvature)
-
-    def key(self):
-        return f&quot;{int(self.center.real)},{int(self.center.imag)},{int(self.curvature)}&quot;
+        self.radius = abs(1 / curvature) # Obviously can't have a negative radius
 </code></pre>
 
 <p>Now let&rsquo;s define an initial set of 3 circles. These circles can be any size
-or position as long as they&rsquo;re all touching each other.</p>
+or position as long as they&rsquo;re all mutually tangent.</p>
 
 <pre><code class="language-py"># Example circles
 c1 = Circle(300, 300, -1/200)  # Outer circle
 c2 = Circle(200, 300,  1/100)  # Left inner circle
 c3 = Circle(400, 300,  1/100)  # Right inner circle
-
-circles = {c1.key(): c1, c2.key(): c2, c3.key(): c3}
+circles = [c1, c2, c3]
 </code></pre>
-
-<p>We’ve stored our circles in a hashmap for quick lookup. This will help avoid duplicating circles as we generate the fractal.</p>
 
 <p>Before we get into the math, let’s visualize the circles using pygame:</p>
 
@@ -91,8 +85,7 @@ while running:
 
     window.fill((255, 255, 255))
 
-    for key in circles:
-        circle = circles[key]
+    for circle in circles:
         x, y = circle.center.real, circle.center.imag
         pygame.draw.circle(window, (0, 0, 0), (x, y), circle.radius, 1)
 
@@ -103,24 +96,25 @@ while running:
 
 <p>Next, we want to compute the curvature and position of the next circle.
 To compute the curvature of a new circle that fits into the gap, we can use Descartes’ Theorem. It states:</p>
-<p><span class="math display">\[(\kappa_1 + \kappa_2 + \kappa_3 + \kappa_4)^2 = 2(\kappa_1^2 + \kappa_2^2 + \kappa_3^2 + \kappa_4^2)\]</span></p><p>where <span class="math inline">\(\kappa_1, \kappa_2, \kappa_3, \kappa_4\)</span> are the curvatures of four mutually tangent circles.</p>
+<p><span class="math display">\[(k_1 + k_2 + k_3 + k_4)^2 = 2(k_1^2 + k_2^2 + k_3^2 + k_4^2)\]</span></p><p>where <span class="math inline">\(k_1, k_2, k_3, k_4\)</span> are circle curavtures.</p>
 
-<p>Solving for k4​, we get:</p>
-<p><span class="math display">\[\kappa_4 = \kappa_1 + \kappa_2 + \kappa_3 \pm 2 \sqrt{\kappa_1 \kappa_2 + \kappa_2 \kappa_3 + \kappa_1 \kappa_3}\]</span></p><p>Implemented here:</p>
+<p>Solving for <span class="math inline">\(k_4​\)</span>, we get:</p>
+<p><span class="math display">\[k_4 = k_1 + k_2 + k_3 \pm 2 \sqrt{k_1 k_2 + k_2 k_3 + k_1 k_3}\]</span></p><p>Implemented here:</p>
 
 <pre><code class="language-py">def descartes_theorem(k1, k2, k3):
     x = k1 + k2 + k3
-    y = 2 * math.sqrt(k1 * k2 + k2 * k3 + k3 * k1)
+    discriminant = abs(k1 * k2 + k2 * k3 + k3 * k1)
+    y = 2 * math.sqrt(discriminant)
     return [x + y, x - y]
 </code></pre>
 
 <p>This quadratic equation provides two possible curvatures, corresponding to the two circles that can fit in the gap.</p>
 
 <p>Now that we have the circle&rsquo;s curvature, we can find its position. To find the position of the new circle, we can extend Descartes’ theorem to the complex plane:</p>
-<p><span class="math display">\[(\kappa_1 z_1 + \kappa_2 z_2 + \kappa_3 z_3 + \kappa_4 z_4)^2 = 2(\kappa_1^2 + \kappa_2^2 + \kappa_3^2 + \kappa_4^2)\]</span></p><p>where k1, k2, k3, k4 are curvatures and z1, z2, z3, z4 are center points</p>
+<p><span class="math display">\[(k_1 z_1 + k_2 z_2 + k_3 z_3 + k_4 z_4)^2 = 2(k_1^2 + k_2^2 + k_3^2 + k_4^2)\]</span></p><p>where <span class="math inline">\(k_1, k_2, k_3, k_4\)</span> are curvatures and <span class="math inline">\(z_1, z_2, z_3, z_4\)</span> are positions. Notice that positions are complex numbers.</p>
 
-<p>Solving for z4, we get:</p>
-<p><span class="math display">\[z_4 = \frac{z_1 \kappa_1 + z_2 \kappa_2 + z_3 \kappa_3 \pm 2 \sqrt{\kappa_1 \kappa_2 z_1 z_2 + \kappa_2 \kappa_3 z_2 z_3 + \kappa_1 \kappa_3 z_1 z_3}}{\kappa_4}\]</span></p><p>Implemented here:</p>
+<p>Solving for <span class="math inline">\(z_4\)</span>, we get:</p>
+<p><span class="math display">\[z_4 = \frac{z_1 k_1 + z_2 k_2 + z_3 k_3 \pm 2 \sqrt{k_1 k_2 z_1 z_2 + k_2 k_3 z_2 z_3 + k_1 k_3 z_1 z_3}}{k_4}\]</span></p><p>Implemented here:</p>
 
 <pre><code class="language-py">def complex_descartes_theorem(z1, k1, z2, k2, z3, k3, k4):
     zk1 = z1 * k1
@@ -133,20 +127,9 @@ To compute the curvature of a new circle that fits into the gap, we can use Desc
     return [(x + y) / k4, (x - y) / k4]
 </code></pre>
 
-<p>To ensure that the new circle positions are valid, we&rsquo;ll need to
-check if they&rsquo;re tangent to the existing circles. We&rsquo;ll define a
-helper function for this:</p>
-
-<pre><code class="language-py">def tangential(c1, c2):
-    epsilon = 0.1
-    r1, r2 = c1.radius, c2.radius
-    distance = abs(c1.center - c2.center)
-    case1 = abs(distance - (r1 + r2)) &lt; epsilon # c1 and c2 are adjacent
-    case2 = abs(distance - abs(r2 - r1)) &lt; epsilon # c2 is inside c1
-    return case1 or case2
-</code></pre>
-
-<p>Finally, we can recursively generate the Apollonian gasket:</p>
+<p>Now we can define a function to get all the 4 possible circles from
+3 mutually tangent circles. There&rsquo;s 4 possible circles because there&rsquo;s
+2 curvatures and 2 center points to choose from.</p>
 
 <pre><code class="language-py">def find_next_circles(c1, c2, c3):
     k1, k2, k3 = c1.curvature, c2.curvature, c3.curvature
@@ -161,26 +144,55 @@ helper function for this:</p>
         circles.append(Circle(z5.real, z5.imag, k))
 
     return circles
+</code></pre>
 
-def generate_gasket(c1, c2, c3, depth):
+<p>To ensure that the new circle positions are valid, we&rsquo;ll need to
+check if they&rsquo;re tangent to the existing circles. We&rsquo;ll define a
+helper function for this:</p>
+
+<pre><code class="language-py">def tangential(c1, c2):
+    epsilon = 0.1
+    r1 = c1.radius
+    r2 = c2.radius
+    distance = abs(c1.center - c2.center) # euclidean distance
+    case1 = abs(distance - (r1 + r2)) &lt; epsilon # c1 and c2 are adjacent
+    case2 = abs(distance - abs(r2 - r1)) &lt; epsilon # c2 is inside c1
+    return case1 or case2
+</code></pre>
+
+<p>For optimization reasons we&rsquo;ll also want to check if we&rsquo;ve already generated a similar circle:</p>
+
+<pre><code class="language-py">def alreadyExists(circles, circle):
+    epsilon = 0.1
+    for other in circles:
+        distance = abs(circle.center - other.center)
+        if distance &lt; epsilon:
+            return True
+    return False
+</code></pre>
+
+<p>Finally, we can recursively generate the Apollonian gasket:</p>
+
+<pre><code class="language-py">def generate_gasket(circles, c1, c2, c3, depth):
     if depth &lt;= 0:
         return
 
     next_circles = find_next_circles(c1, c2, c3)
 
     for c in next_circles:
+        too_small = c.radius &lt; 3
         mutually_tangential = all(tangential(c, x) for x in [c1, c2, c3])
-        if c.radius &lt; 2 or c.key() in circles or not mutually_tangential:
-            continue # Skip duplicate or non tangential circles
+        if not mutually_tangential or too_small or alreadyExists(circles, c):
+            continue
 
-        circles[c.key()] = c
+        circles.append(c)
 
         # Generate with new sets of 3 circles
-        generate_gasket(c1, c2, c, depth - 1)
-        generate_gasket(c2, c3, c, depth - 1)
-        generate_gasket(c1, c3, c, depth - 1)
+        generate_gasket(circles, c1, c2, c, depth - 1)
+        generate_gasket(circles, c2, c3, c, depth - 1)
+        generate_gasket(circles, c1, c3, c, depth - 1)
 
-generate_gasket(c1, c2, c3, 4)
+generate_gasket(circles, c1, c2, c3, 4)
 </code></pre>
 
 <p>Run the program, and you should see this fractal:</p>
