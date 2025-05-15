@@ -1,6 +1,7 @@
-# Hi, I'm Abigail 👋
+# Hi, I'm Abigail
 
-I like building things, and sometimes I write. Here's some stuff I've written
+Nice to meet you. I build things, and sometimes I write.
 
 - [Drawing Apollonian Gaskets](gasket.md)
+
 - [Confidently wrong](wrong.md)

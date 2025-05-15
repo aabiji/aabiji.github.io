@@ -85,25 +85,6 @@ code {
         height: 100px;
     }
 
-    .text-overlay {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -110%);
-        color: white;
-        font-weight: bold;
-        text-align: center;
-        opacity: 0;
-    }
-
-    .img-container:hover img {
-        filter: blur(3px);
-    }
-
-    .img-container:hover .text-overlay {
-        opacity: 0.9;
-    }
-
     .right {
         width: 75%;
         float: right;
