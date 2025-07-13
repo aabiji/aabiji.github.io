@@ -1,5 +1,6 @@
 body {
     font-family: "Arial";
+    line-height: 1.5;
 }
 
 a {
@@ -18,7 +19,7 @@ hr {
 }
 
 img {
-    width: 50%;
+    width: 100%;
     height: auto;
 }
 
@@ -95,7 +96,7 @@ code {
     }
 
     .content {
-        width: 700px;
+        width: 800px;
         margin-left: 1%;
         margin-top: auto;
         margin-bottom: auto;
