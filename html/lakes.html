@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+
+        
+        <script type="text/javascript" id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+        </script>
+
+        <title>  Water levels and temperatures across Canada </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="../assets/styles.css">
+    </head>
+
+    <body>
+        <div class="left">
+            <a href="https://aabiji.github.io" class="img-container">
+                <img title="Home" alt="Image" src="https://pbs.twimg.com/profile_images/1915119149375754240/oDjcDSc8_400x400.jpg">
+            </a>
+            <a href="https://github.com/aabiji">Github</a>
+            <a href="https://x.com/aaabiji">X</a>
+        </div>
+
+        <div class="right">
+            <div class="content"><h1>Water levels and temperatures across Canada</h1>
+
+<p><em>July 13, 2025</em></p>
+
+<p><img src="/assets/lakes/gauging_stations.png" alt="Gauging stations" /></p>
+
+<p>I want to preface this by saying that you should take my analysis with a grain
+of salt. I most likely made a mistake or an oversight somewhere, so my results
+aren&rsquo;t perfect. What’s more interesting for me, is how I approached the analysis
+and what I learnt about data analysis tools like pandas and matplotlib.</p>
+
+<p>With climate change driving rising sea levels and global temperatures,
+it seems intuitive that landlocked bodies of water—like lakes—would be affected too.
+In fact, the <a href="https://www.epa.gov/climate-indicators/great-lakes">EPA</a> has shown
+that water levels and temperatures in the Great Lakes have risen slightly in recent decades.</p>
+
+<p>This made me wonder: what about other bodies of water, specifically in Canada?
+Canada is home to a huge number of lakes, around 62% of all lakes on Earth, so it&rsquo;s
+a relevant question. This analysis explores whether Canadian water levels,
+and temperatures have also increased.</p>
+
+<p>After a little bit of digging, I found
+<a href="https://collaboration.cmc.ec.gc.ca/cmc/hydrometrics/www/">this dataset</a> from
+the government of Canada. It contains daily and monthly measurements for water flow,
+levels, and sediment concentrations from gauging stations across the country.
+The data is packaged in an SQLite3 database, making it straightforward to load into
+a pandas DataFrame.</p>
+
+<pre><code class="language-py">def get_dataset():
+    base_url = &quot;https://collaboration.cmc.ec.gc.ca/cmc/hydrometrics/www/&quot;
+    soup = bs4.BeautifulSoup(requests.get(base_url).text, &quot;html.parser&quot;)
+
+    # anything that contains _sqlite3_ and ends in .zip
+    pattern = re.compile(r&quot;.*_sqlite3_.*\.zip&quot;)
+
+    links = [l for l in soup.find_all(&quot;a&quot;) if pattern.match(l.get_text())]
+    filename = links[0][&quot;href&quot;]
+
+    response = requests.get(f&quot;{base_url}{filename}&quot;)
+    with open(&quot;dataset.zip&quot;, &quot;wb&quot;) as output:
+        output.write(response.content)
+
+    with zipfile.ZipFile(&quot;dataset.zip&quot;, 'r') as zip_ref:
+        zip_ref.extractall(&quot;dataset&quot;)
+
+    files = glob.glob('./dataset/*.sqlite3', recursive=True)
+    os.remove(&quot;dataset.zip&quot;)
+    return files[0]
+
+path = get_dataset()
+connection = sqlite3.connect(path)
+values = pd.read_sql_query(&quot;SELECT * from ANNUAL_STATISTICS&quot;, connection)
+</code></pre>
+
+<p>I focused on the ANNUAL_STATISTICS table, which contains annual summaries from
+different gauging stations across Canada.</p>
+
+<pre><code>       STATION_NUMBER DATA_TYPE  YEAR          MEAN  ...  MAX_MONTH  MAX_DAY       MAX MAX_SYMBOL
+0             01AA002         Q  1969     18.000000  ...        4.0     18.0     161.0       None
+1             01AA002         Q  1970     15.900000  ...        4.0     26.0     280.0          B
+2             01AA002         Q  1971     14.200000  ...        8.0     29.0     213.0       None
+...
+</code></pre>
+
+<p>To start, I plotted the mean water levels over the years from each gauging station.
+I chose to use the mean, because I also graphed the min and max and found that they
+looked quite similar.</p>
+
+<pre><code class="language-py">values = pd.read_sql_query(&quot;SELECT * from ANNUAL_STATISTICS&quot;, connection)
+water_levels = values[values[&quot;DATA_TYPE&quot;] == &quot;H&quot;]
+
+station_numbers = water_levels[&quot;STATION_NUMBER&quot;].unique()
+unregulated = [s for s in station_numbers if is_not_regulated(s, connection)]
+
+for station_number in unregulated:
+    station = Station(station_number)
+    station_data = water_levels[water_levels[&quot;STATION_NUMBER&quot;] == station.number]
+    station_data = station_data.sort_values(by=&quot;YEAR&quot;)
+
+    # replace each NaN with the previous valid value
+    station_data[&quot;MEAN&quot;] = station_data[&quot;MEAN&quot;].ffill()
+
+    plt.plot(station_data[&quot;YEAR&quot;], station_data[&quot;MEAN&quot;], '-', label=station.name)
+
+plt.title(f&quot;Mean annual water levels of various bodies of water in Canada&quot;)
+plt.xlabel(&quot;Year&quot;)
+plt.ylabel(&quot;Mean water level&quot;)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<p>That gave me a graph that looked like this:
+<img src="/assets/lakes/attempt-1.png" alt="First attempt" /></p>
+
+<p>As we can see, each station has different baselines for water levels, so the graph&rsquo;s
+too noisy. My second approach involved aggregating data from multiple gauging
+stations by calculating the average annual water level across all stations each year.
+This would mean that we&rsquo;re not placing less emphasis on each individual water station
+and more on the whole of Canada.</p>
+
+<pre><code class="language-py">values = pd.read_sql_query(&quot;SELECT * from ANNUAL_STATISTICS&quot;, connection)
+water_levels = values[values[&quot;DATA_TYPE&quot;] == &quot;H&quot;]
+
+station_numbers = water_levels[&quot;STATION_NUMBER&quot;].unique()
+unregulated_stations = [s for s in station_numbers if is_not_regulated(s, connection)]
+
+# only want water sources that aren't regulated
+filtered = water_levels[water_levels[&quot;STATION_NUMBER&quot;].isin(unregulated_stations)].copy()
+
+filtered = filtered.sort_values(by=[&quot;STATION_NUMBER&quot;, &quot;YEAR&quot;])
+
+filtered = filtered.dropna(subset=[&quot;MEAN&quot;]) # remove NaNs
+
+# group duplicate years from different stations together, and average the means
+mean_water_levels_by_year = filtered.groupby(&quot;YEAR&quot;)[&quot;MEAN&quot;].mean()
+
+plt.plot(mean_water_levels_by_year.index, mean_water_levels_by_year.values)
+plt.title(f&quot;Mean annual water levels of various bodies of water in Canada&quot;)
+plt.xlabel(&quot;Year&quot;)
+plt.ylabel(&quot;Mean water level&quot;)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<p>Which gave us a graph that looks like this:
+<img src="/assets/lakes/attempt-2.png" alt="Second attempt" /></p>
+
+<p>Which is much better. But the graph still seems wrong. It looks like there was this
+massive spike in water level in the 1920s, but that doesn&rsquo;t make sense, since the
+1920s in Canada were characterized by drought.</p>
+
+<p>I thought about it some more, looking at the database reference more closely.
+Then it hit me, <em>each station is using a different
+<a href="https://wateroffice.ec.gc.ca/report/datum_faq_e.html">datum</a></em>. A datum in this context is
+a reference surface for elevations.  For example, in Canada a common standard vertical
+datum is CGVD2013 (Canadian Geodetic Vertical Datum of 2013). It uses a surface
+called a geoid as its reference. The geoid is an <a href="https://en.wikipedia.org/wiki/Equipotential">equipotential</a> surface of the Earth&rsquo;s gravity field, which closely approximates average
+sea level globally (but can vary because of gravity differences). So, water levels
+measured relative to CGVD2013 are effectively measured relative to the Earth&rsquo;s
+gravity defined average sea level.</p>
+
+<p>Since each gauging station is using a different datum, we have 2 main options.
+We can try to convert all the stations to a common datum. But, looking through
+the dataset:</p>
+
+<pre><code>     STATION_NUMBER  DATUM_ID_FROM  DATUM_ID_TO  CONVERSION_FACTOR
+0           01AD009            405          415         168.270996
+1           01AD014            405          415         162.388000
+2           01AF003             10           35         141.917999
+...
+</code></pre>
+
+<p>it seems as though there isn&rsquo;t a common datum that each station can convert to.</p>
+
+<p>Which leaves us with the second option, which is to analyze water levels
+per each datum. So for each datum, we take all the stations that are
+already using that datum. We also take all the stations that can have
+their water levels converted to that datum and convert the water levels
+(just adding the conversion factors). And now that the datums are the same
+we can continue graphing like before.</p>
+
+<p>So using CGVD2013  like before, we get this graph:
+<img src="/assets/lakes/attempt-3.png" alt="Third attempt" /></p>
+
+<p>This looked much more believable. We do see a huge spike in water level in
+the 1960s that&rsquo;s suspect, specifically in 1964, but this is something we can explain.
+Since in 1964, there was a tsunami that affected the British Columbia coast, and
+severe flooding in Alberta and Saskatchewan from heavy rainfall and runoff. But
+this is just one datum, we need to consider all of them.</p>
+
+<p>To do that, we can superpose all the graphs together.</p>
+
+<pre><code class="language-py">def z_score_normalize(group):
+    return (group - group.mean()) / group.std()
+
+# get the most frequently used datums
+conversions = pd.read_sql_query(&quot;SELECT * from STN_DATUM_CONVERSION&quot;, connection)
+datum_usage_counts = conversions.groupby(&quot;DATUM_ID_TO&quot;)[&quot;STATION_NUMBER&quot;].count()
+most_used_datums = datum_usage_counts.sort_values(ascending=False).index.tolist()
+
+stations = pd.read_sql_query(&quot;SELECT * from STATIONS&quot;, connection)
+
+annual_statistics = pd.read_sql_query(&quot;SELECT * from ANNUAL_STATISTICS&quot;, connection)
+all_water_levels = annual_statistics[annual_statistics[&quot;DATA_TYPE&quot;] == &quot;H&quot;] # T = daily mean tonnes, Q = flow
+
+all_stations = all_water_levels[&quot;STATION_NUMBER&quot;].unique()
+datums_used = stations[stations[&quot;STATION_NUMBER&quot;].isin(all_stations)][&quot;DATUM_ID&quot;].unique()
+
+# only consider water sources that haven't been regulated
+# NOTE: try toggling this on/off because there is a difference
+regulation_data = pd.read_sql_query(&quot;SELECT * FROM STN_REGULATION&quot;, connection)
+regulated_stations = regulation_data.loc[regulation_data[&quot;REGULATED&quot;] == 1, &quot;STATION_NUMBER&quot;]
+unregulated_stations = set(all_stations) - set(regulated_stations)
+all_water_levels = all_water_levels[all_water_levels[&quot;STATION_NUMBER&quot;].isin(unregulated_stations)]
+
+column = &quot;MEAN&quot;
+yearly_station_data = []
+
+for target_datum in most_used_datums:
+    # only select water level data that uses a common datum or can be converted to the common datum
+    stations_already_with_datum = stations[stations[&quot;DATUM_ID&quot;] == target_datum][&quot;STATION_NUMBER&quot;].copy()
+    water_levels_using_datum = all_water_levels[all_water_levels[&quot;STATION_NUMBER&quot;].isin(stations_already_with_datum)]
+
+    conversions = pd.read_sql_query(&quot;SELECT * from STN_DATUM_CONVERSION&quot;, connection)
+    convertible_stations = conversions[conversions[&quot;DATUM_ID_TO&quot;] == target_datum]
+
+    # add the conversion factor column to corresponding station numbers
+    water_levels_with_conversion_factor = pd.merge(
+        all_water_levels,
+        convertible_stations[[&quot;STATION_NUMBER&quot;, &quot;CONVERSION_FACTOR&quot;]],
+        on=&quot;STATION_NUMBER&quot;,
+        how=&quot;inner&quot;
+    )
+    water_levels_with_conversion_factor[column] += water_levels_with_conversion_factor[&quot;CONVERSION_FACTOR&quot;]
+
+    # remove the conversion factor column since we don't need it anymore
+    water_levels_with_conversion_factor.drop(columns=&quot;CONVERSION_FACTOR&quot;, inplace=True)
+
+    # now all the water level data are using the same datum
+    water_levels = pd.concat([water_levels_using_datum, water_levels_with_conversion_factor], ignore_index=True)
+
+    # remove rows where the min, max and mean are nan
+    water_levels = water_levels.dropna(subset=[column], how=&quot;all&quot;)
+
+    # replace nans with the last valid value
+    # min-max normalize so that each graph has the same scale, regardless of datum
+    water_levels[column] = water_levels.groupby(&quot;STATION_NUMBER&quot;)[column].transform(lambda x: x.ffill())
+    water_levels[column] = water_levels.groupby(&quot;STATION_NUMBER&quot;)[column].transform(z_score_normalize)
+
+    # group duplicate years from different stations together, and average the means
+    mean_water_levels_by_year = water_levels.groupby(&quot;YEAR&quot;)[column].mean()
+
+    mean_water_levels_by_year = water_levels.groupby(&quot;YEAR&quot;)[column].mean().reset_index()
+    yearly_station_data.append(mean_water_levels_by_year)
+
+# fainty show each plot
+for plot in yearly_station_data:
+    plt.plot(plot[&quot;YEAR&quot;], plot[&quot;MEAN&quot;], color=&quot;grey&quot;, linewidth=1, alpha=0.2)
+
+# concatenate all normalized station-year means across all datums
+combined = pd.concat(yearly_station_data, ignore_index=True)
+
+# compute and plot overall trend line (average of all stations by year)
+overall_trend = combined.groupby(&quot;YEAR&quot;)[column].mean()
+plt.plot(overall_trend.index, overall_trend.values, color=&quot;blue&quot;, linewidth=3)
+
+# draw the middle line (z-score always has a normalized mean of zero)
+plt.axhline(0, color=&quot;black&quot;, linestyle=&quot;--&quot;, linewidth=1)
+
+column_str = column[0] + column[1:].lower()
+plt.title(f&quot;Normalized {column_str} Annual Water Levels (All Datums)&quot;)
+plt.xlabel(&quot;Year&quot;)
+plt.ylabel(f&quot;Z-Score Normalized {column_str} Water Level&quot;)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<p>Which gives us this graph:
+<img src="/assets/lakes/attempt-4.png" alt="Fourth attempt" /></p>
+
+<p>In grey, we have the water levels collected using different datums,
+and in blue, we have the main trend line.
+From the graph, we can see that there aren&rsquo;t actually any long term trends.
+The water levels have remained fairly consistent throughout the decades.</p>
+
+<p>The sediment sampling data also did include water temperatures.
+So I plotted the mean water temperature per year:</p>
+
+<pre><code class="language-py">samples = pd.read_sql_query(
+    &quot;SELECT DATE, TEMPERATURE FROM SED_SAMPLES WHERE TEMPERATURE IS NOT NULL ORDER BY DATE&quot;,
+    connection
+)
+samples[&quot;DATE&quot;] = pd.to_datetime(samples[&quot;DATE&quot;])
+samples = samples.set_index(&quot;DATE&quot;)
+
+samples = samples[samples.index &gt;= &quot;1965-01-01&quot;] # ignore erroneuous data
+yearly_means = samples.resample(&quot;YE&quot;).mean().reset_index()
+
+plt.plot(yearly_means[&quot;DATE&quot;], yearly_means[&quot;TEMPERATURE&quot;], color=&quot;red&quot;)
+
+plt.title(&quot;Water temperatures&quot;)
+plt.xlabel(&quot;Year&quot;)
+plt.ylabel(&quot;Water temperature&quot;)
+plt.grid(True)
+plt.show()
+</code></pre>
+
+<p><img src="/assets/lakes/temperatures.png" alt="Water temperatures" /></p>
+
+<p>So while the water levels have stayed consistent, the water temperatures have
+been slowly rising over the decades. So, part of my original hypothesis, that water levels
+would rise, was wrong.</p>
+
+<p>And that makes sense. While climate change is driving up global temperatures,
+landlocked bodies of water aren&rsquo;t guaranteed to see rising water levels unless
+there&rsquo;s a significant shift in precipitation or inflow patterns. Still, the
+stability of water levels doesn’t mean these ecosystems are safe — rising temperatures
+and changing climates continue to pose serious risks. That’s why it&rsquo;s important
+that we develop and implement effective solutions to mitigate the
+broader impacts of climate change.</p>
+</div>
+        </div>
+    </body>
+</html>
