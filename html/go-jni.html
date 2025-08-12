@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+
+        
+        <script type="text/javascript" id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+        </script>
+
+        <title>  Calling Java from Go in a Gio UI Android App </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="../assets/styles.css">
+    </head>
+
+    <body>
+        <div class="left">
+            <a href="https://aabiji.github.io" class="img-container">
+                <img title="Home" alt="Image" src="https://pbs.twimg.com/profile_images/1915119149375754240/oDjcDSc8_400x400.jpg">
+            </a>
+            <a href="https://github.com/aabiji">Github</a>
+        </div>
+
+        <div class="right">
+            <div class="content"><h1>Calling Java from Go in a Gio UI Android App</h1>
+
+<p><em>August 12, 2025</em></p>
+
+<p>Lately I&rsquo;ve been playing around with <a href="https://gioui.org/">Gio UI</a>, a UI
+library for Go. Although Gio supports Android, getting it to interoperate
+with Java code that uses the Android SDK turned out to be more complex
+than expected due to a lack of solid resources on the topic. So I thought
+I&rsquo;d share what I managed to figure out. Here, I’ll walk through how to call
+Java code from Go in an Android app.</p>
+
+<p>Let&rsquo;s start with a basic Gio app that shows &ldquo;Hello World!&rdquo; on the screen:</p>
+
+<pre><code class="language-go">package main
+
+import (
+	&quot;log&quot;
+	&quot;os&quot;
+
+	&quot;gioui.org/app&quot;
+	&quot;gioui.org/font/gofont&quot;
+	&quot;gioui.org/op&quot;
+	&quot;gioui.org/text&quot;
+	&quot;gioui.org/widget/material&quot;
+)
+
+func main() {
+	go func() {
+		w := new(app.Window)
+		if err := loop(w); err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(0)
+	}()
+	app.Main()
+}
+
+func loop(w *app.Window) error {
+	th := material.NewTheme()
+	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
+	var ops op.Ops
+	for {
+		switch e := w.Event().(type) {
+		case app.DestroyEvent:
+			return e.Err
+		case app.FrameEvent:
+			gtx := app.NewContext(&amp;ops, e)
+			l := material.H1(th, &quot;Hello world!&quot;)
+			l.Alignment = text.Middle
+			l.Layout(gtx)
+			e.Frame(gtx.Ops)
+		}
+	}
+}
+</code></pre>
+
+<p>To build it for Android, follow the official Gio Android setup
+<a href="https://gioui.org/doc/install/android">guide</a>. Then run these commands:</p>
+
+<pre><code class="language-bash"># Runs any //go:generate directives (we’ll add some later for Java)
+go generate
+
+# The -ldflags &quot;-checklinkname=0&quot; flag is needed because of the
+# [anet](https://github.com/wlynxg/anet) library Gio uses for networking.
+gogio -ldflags &quot;-checklinkname=0&quot; -target android github.com/yourusername/yourmodule -o demo.apk
+
+# Install to Android device
+adb install demo.apk
+</code></pre>
+
+<p>Moving on to the Java side, we’ll create a method to write a file to the Android
+Downloads folder using the Android SDK’s <a href="https://developer.android.com/reference/kotlin/android/provider/MediaStore.html">MediaStore</a> API:</p>
+
+<pre><code class="language-java">package com.example.demo;
+
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Log;
+
+import java.io.OutputStream;
+
+public class Utils {
+    public static void writeToDownloadsFolder(
+        Context context, byte[] contents, String filename, String mimetype) {
+        try {
+            ContentResolver resolver = context.getContentResolver();
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, mimetype);
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH,
+                Environment.DIRECTORY_DOWNLOADS + &quot;/&quot;);
+
+            Uri uri = resolver.insert(MediaStore.Files.getContentUri(&quot;external&quot;), values);
+            OutputStream output = resolver.openOutputStream(uri);
+            output.write(contents);
+            output.flush();
+            output.close();
+        } catch (Exception e) {
+            Log.e(&quot;demo-project&quot;, &quot;Exception occurred!&quot;, e);
+        }
+    }
+}
+</code></pre>
+
+<p>Now we need to compile the Java code into a jar and include it into our Gio app.
+We can automatically do that by add <code>go:generate</code> directives at the top of the Go code:</p>
+
+<pre><code class="language-go">//go:generate javac -classpath $ANDROID_HOME/platforms/android-36/android.jar -d /tmp/java_classes Utils.java
+//go:generate jar cf Utils.jar -C /tmp/java_classes .
+</code></pre>
+
+<p>Replace android-36 with your Android SDK version. These commands
+compile Utils.java into class files, using the Android SDK’s android.jar for dependencies
+and packages the class files into Utils.jar.</p>
+
+<p>Now we get to the tricky part: calling our Java method from Go. Since
+Android apps run in the Android Runtime (ART), a JVM compatible environment
+and our app is written in Go, we need a way to bridge the two.
+This is where the Java Native Interface (JNI) comes in.</p>
+
+<p>The JNI enables native code (written in C/C++) to interact with Java code.
+It operates through a set of functions exposed via a <code>JNIEnv</code> pointer,
+which serves as the entry point for most JNI operations. These functions allow you to
+locate java classes by name, create java objects from native data, invoke java methods,
+handle exceptions and manage JVM state.</p>
+
+<p>The Android Native Development Kit
+(<a href="https://developer.android.com/training/articles/perf-jni">NDK</a>)
+implements those functions for the ART. We&rsquo;ll also be using <a href="https://github.com/timob/jnigi">jnigi</a>,
+since it wraps the raw C JNI functions in nice Go abstractions.</p>
+
+<p>The workflow for our Go code would be to get a <code>JNIEnv</code> pointer tied to the current thread
+(since you can&rsquo;t share a JNIEnv between threads), convert Go arguments to the corresponding
+Java objects, then locate the java class and methods and invoke it with arguments.</p>
+
+<p>Given our example, it would look like this:</p>
+
+<pre><code class="language-go">import (
+	&quot;github.com/timob/jnigi&quot;
+	&quot;gioui.org/app&quot;
+)
+
+func writeToDownloadsFolder(filename, mimetype string, contents []byte) error {
+	env, cleanup := getJNIEnv()
+	defer cleanup()
+
+	context := jnigi.WrapJObject(app.AppContext(), &quot;android/content/Context&quot;, false)
+
+	filenameObj, err := env.NewObject(&quot;java/lang/String&quot;, []byte(filename))
+	if err != nil {
+		return err
+	}
+
+	mimetypeObj, err := env.NewObject(&quot;java/lang/String&quot;, []byte(mimetype))
+	if err != nil {
+		return err
+	}
+
+	contentsObj := env.NewByteArrayFromSlice(contents)
+
+	err = env.CallStaticMethod(
+		&quot;com/example/demo/Utils&quot;,
+		&quot;writeToDownloadsFolder&quot;,
+		nil, // returns void
+		context, contentsObj, filenameObj, mimetypeObj,
+	)
+	return err
+}
+</code></pre>
+
+<p>Gio Android backend gives us the app&rsquo;s <code>Context</code>, which is a data structure that
+gives the app access to Android ressources.</p>
+
+<p>Now to get the <code>JNIEnv</code> pointer required for JNI operations, we&rsquo;ll use CGo to call
+C functions from the Android NDK:</p>
+
+<pre><code class="language-go">/*
+#cgo LDFLAGS: -llog -landroid
+
+#include &lt;android/log.h&gt;
+#include &lt;android/native_window_jni.h&gt;
+#include &lt;stdlib.h&gt;
+
+static jint jni_GetEnvOrAttach(JavaVM *vm, JNIEnv **env, jint *attached) {
+    jint res = (*vm)-&gt;GetEnv(vm, (void **)env, JNI_VERSION_1_6);
+    if (res == JNI_EDETACHED) {
+        res = (*vm)-&gt;AttachCurrentThread(vm, (void **)env, NULL);
+        *attached = res == JNI_OK;
+    }
+    return res;
+}
+
+static void jni_DetachCurrent(JavaVM *vm) {
+    (*vm)-&gt;DetachCurrentThread(vm);
+}
+*/
+import &quot;C&quot;
+import (
+    &quot;runtime&quot;
+    &quot;unsafe&quot;
+)
+
+func getJNIEnv() (*jnigi.Env, func()) {
+	runtime.LockOSThread()
+
+	jvm := app.JavaVM()
+	cJVM := (*C.JavaVM)(unsafe.Pointer(jvm))
+
+	var cEnv *C.JNIEnv
+	var attached C.jint
+	C.jni_GetEnvOrAttach(cJVM, &amp;cEnv, &amp;attached)
+	_, env := jnigi.UseJVM(unsafe.Pointer(jvm), unsafe.Pointer(cEnv), nil)
+
+	cleanup := func() {
+		if attached != 0 {
+			C.jni_DetachCurrent(cJVM)
+		}
+		runtime.UnlockOSThread()
+	}
+	return env, cleanup
+}
+</code></pre>
+
+<p><code>jni_GetEnvOrAttach</code> uses the <code>JavaVM</code> pointer to query the current <code>JNIEnv</code> with <code>GetEnv</code>.
+If the current thread is not attached, it attaches it. This is necessary because JNI requires
+threads to be explicitly attached to the JVM to obtain a valid <code>JNIEnv</code>.
+We specify JNI_VERSION_1_6 for compatibility.</p>
+
+<p><code>jni_DetachCurrent</code> calls <code>DetachCurrentThread</code> to release the thread from the JVM,
+preventing resource leaks.</p>
+
+<p>In <code>getJNIEnv</code> we bind the goroutine to a specific OS thread, get the <code>JavaVM</code> pointer
+from Gio&rsquo;s Android backend, call our C functions and define a cleanup function that
+detaches the thread if it&rsquo;s attached and unlocks the OS thread. Note that the <code>nil</code>
+when calling <code>jnigi.UseJVM</code> is for the optional thiz (<code>this</code> in Java), which we won&rsquo;t need
+for static methods.</p>
+
+<p>And that&rsquo;s that! For debugging purposes we&rsquo;ll add a panic handler:</p>
+
+<pre><code class="language-go">import (
+	&quot;fmt&quot;
+	&quot;runtime&quot;
+    &quot;runtime/debug&quot;
+	&quot;strings&quot;
+	&quot;unsafe&quot;
+)
+
+func androidCrashHandler() {
+	if r := recover(); r != nil {
+        str := fmt.Sprintf(&quot;Crash: %v\n%s&quot;, r, debug.Stack())
+        tag := C.CString(&quot;demo-project&quot;)
+        defer C.free(unsafe.Pointer(tag))
+
+        lines := strings.Split(str, &quot;\n&quot;)
+        for _, line := range lines {
+            msg := C.CString(line)
+            C.__android_log_write(C.ANDROID_LOG_INFO, tag, msg) // from &lt;android/log.h&gt;
+            C.free(unsafe.Pointer(msg))
+        }
+	}
+}
+</code></pre>
+
+<p>And update the main function to include the panic handler and test the Java call:</p>
+
+<pre><code class="language-go">func main() {
+	if runtime.GOOS == &quot;android&quot; {
+		defer androidCrashHandler()
+
+        contents := []byte(&quot;Open your mind...&quot;)
+        if err := writeToDownloadsFolder(&quot;this-works.txt&quot;, &quot;text/plain&quot;, contents); err != nil {
+            panic(fmt.Sprintf(&quot;Failed to write to Downloads: %s&quot;, err))
+        }
+	}
+
+	go func() {
+		w := new(app.Window)
+		if err := loop(w); err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(0)
+	}()
+	app.Main()
+}
+</code></pre>
+
+<p>Now, if you build and run the app, and check the Download folder in Internal Storage,
+you should see <code>this-works.txt</code>. If not you can inspect the logs with</p>
+
+<pre><code class="language-bash">adb logcat -s demo-project
+</code></pre>
+
+<p>You can find the full code <a href="https://gist.github.com/aabiji/254f27c987d99a58d1f4e949842e48d4">here</a>.</p>
+</div>
+        </div>
+    </body>
+</html>
