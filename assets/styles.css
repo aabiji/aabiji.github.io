@@ -28,6 +28,8 @@ code {
     display: block;
 }
 
+p code { display: inline-block; }
+
 .left img {
     border-radius: 50%;
     display: block;

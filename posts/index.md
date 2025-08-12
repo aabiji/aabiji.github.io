@@ -1,6 +1,7 @@
 # Hey, I'm Abigail
 
 Nice to meet you. I like building things, reading books and working out.
+
 And sometimes I write:
 
 - [Drawing Apollonian Gaskets](gasket.md)

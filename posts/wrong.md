@@ -1,7 +1,7 @@
 # Confidenly wrong
 *May 12, 2025*
 
-There have been way too many times where I thought a test would be an easy 100%, only to be met with a disastrous 80%. Or, I'd get into an argument with someone, totally convinced that I was right, only to later realize that I was the idiot all along.
+There have been way too many times where I thought a test would be an easy 100%, only to be met with an 80%. Or, I'd get into an argument with someone, totally convinced that I was right, only to later realize that I was the idiot all along.
 
 What bothers me isn't the fact that I was wrong, it's the fact that I was so *confident* about it. Like I was mentally incapable of realizing my own error, that in hind sight, seems so obvious. So I've been wondering: how is it that we can be so confidently wrong?
 
