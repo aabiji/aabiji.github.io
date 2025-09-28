@@ -4,9 +4,11 @@
 ![Gauging stations](lakes/gauging_stations.png)
 
 I want to preface this by saying that you should take my analysis with a grain
-of salt. I most likely made a mistake or an oversight somewhere, so my results
-aren't perfect. What’s more interesting for me, is how I approached the analysis
-and what I learnt about data analysis tools like pandas and matplotlib.
+of salt. I most likely made mistakes and oversights, so my results
+aren't great. This was just for fun, so what’s more interesting is me is
+how I approached the analysis and what I learnt in the process.
+
+---
 
 With climate change driving rising sea levels and global temperatures,
 it seems intuitive that landlocked bodies of water—like lakes—would be affected too.

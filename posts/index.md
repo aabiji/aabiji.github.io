@@ -11,3 +11,5 @@ And sometimes I write:
 - [Calling Java from Go in a Gio UI Android App](go-jni.md)
 
 - [Water levels and temperatures across Canada](lakes.md)
+
+- [Simplifying polylines to exactly *n* points](simplify-polyline.md)
