@@ -1,5 +1,5 @@
 body {
-    font-family: "Arial";
+    font-family: Georgia, Times, Times New Roman, serif;
     line-height: 1.5;
 }
 
@@ -30,38 +30,7 @@ code {
 
 p code { display: inline-block; }
 
-.left img {
-    border-radius: 50%;
-    display: block;
-}
-
-/* Mobile view */
-@media only screen and (max-width: 850px) {
-    .left {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        margin: 0 auto;
-        width: 90%;
-    }
-
-    .img-container {
-        margin-right: 10px;
-        display: flex;
-        align-items: center;
-    }
-
-    .left img {
-        width: 50px;
-        height: 50px;
-        margin-right: 10px;
-    }
-
-    .right {
-        width: 90%;
-        margin: 0 auto;
-    }
-}
+.back-btn { font-size: 19px; padding-top: 100px; }
 
 /* Desktop view */
 @media only screen and (min-width: 850px) {
@@ -71,36 +40,10 @@ p code { display: inline-block; }
         display: flex;
     }
 
-    .left {
-        width: 25%;
-        height: fit-content;
-        position: fixed;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .left img {
-        width: 100px;
-        height: 100px;
-    }
-
-    .right {
-        width: 75%;
-        float: right;
-        display: flex;
-        min-height: 100vh;
-        overflow-y: auto;
-        margin-left: auto;
-    }
-
     .content {
-        width: 800px;
-        margin-left: 1%;
+        width: 40%;
         margin-top: auto;
         margin-bottom: auto;
+        margin: 0 auto;
     }
 }

@@ -126,6 +126,7 @@ func fixRelativeFilPaths(document ast.Node) (ast.Node, error) {
 type Post struct {
 	HTMLContent template.HTML
 	StylePath   string
+	ArticlePage bool
 	Title       string
 	inPath      string
 	outPath     string
@@ -141,10 +142,11 @@ func newPost(markdownFile string) (Post, error) {
 
 	base, _ := getFileParts(markdownFile)
 	post := Post{
-		inPath:    markdownFile,
-		outPath:   fmt.Sprintf("%s/%s.html", TEMP_OUTPUT_FOLDER, base),
-		Title:     firstLine[2:],
-		StylePath: fmt.Sprintf("%s/styles.css", ASSET_FOLDER),
+		inPath:      markdownFile,
+		outPath:     fmt.Sprintf("%s/%s.html", TEMP_OUTPUT_FOLDER, base),
+		Title:       firstLine[2:],
+		StylePath:   fmt.Sprintf("%s/styles.css", ASSET_FOLDER),
+		ArticlePage: base != "index",
 	}
 
 	if base != "index" {

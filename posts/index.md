@@ -1,6 +1,6 @@
-# Hey, I'm Abigail
+# Hi, I'm Abigail
 
-Nice to meet you. I like building things, reading books and working out.
+I like [building things](https://github.com/aabiji), reading books and working out.
 
 And sometimes I write:
 
