@@ -1,5 +1,5 @@
 # Confidenly wrong
-*May 12, 2025*
+[Abigail Adegbiji](https://aabiji.github.io/) • May 12, 2025
 
 There have been way too many times where I thought a test would be an easy 100%, only to be met with an 80%. Or, I'd get into an argument with someone, totally convinced that I was right, only to later realize that I was the idiot all along.
 

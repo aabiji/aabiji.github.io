@@ -1,5 +1,5 @@
 # Drawing Apollonian Gaskets
-*December 9, 2024*
+[Abigail Adegbiji](https://aabiji.github.io/) • December 9, 2024
 
 An Apollonian gasket is a fractal formed by recursively adding circles
 in the gaps between three mutually tangent circles.

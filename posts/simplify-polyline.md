@@ -1,5 +1,5 @@
 # Simplifying polylines to exactly *n* points
-September 28, 2025
+[Abigail Adegbiji](https://aabiji.github.io/) • September 28, 2025
 
 Plotting big datasets often results in unreadable graphs full of noise.
 What's needed is a simplfied version that preserves the overall shape by

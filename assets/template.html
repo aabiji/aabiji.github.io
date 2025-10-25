@@ -11,15 +11,15 @@
             src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
         </script>
 
+        <!--Font-->
+        <link href="https://fonts.googleapis.com/css?family=Inter" rel="stylesheet">
+
         <title>  {{ .Title }} </title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="{{.StylePath}}">
     </head>
 
     <body>
-        <div class="content">
-            {{if .ArticlePage}}<a class="back-btn" href="https://aabiji.github.io"> ← Back</a>{{end}}
-            {{.HTMLContent}}
-        </div>
+        <div class="content">{{.HTMLContent}}</div>
     </body>
 </html>

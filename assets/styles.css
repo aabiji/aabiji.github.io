@@ -1,6 +1,5 @@
 body {
-    font-family: Georgia, Times, Times New Roman, serif;
-    line-height: 1.5;
+  font-family: 'Inter';
 }
 
 a {
@@ -25,12 +24,11 @@ img {
 
 code {
     width: auto;
+    font-size: 1rem;
     display: block;
 }
 
 p code { display: inline-block; }
-
-.back-btn { font-size: 19px; padding-top: 100px; }
 
 /* Desktop view */
 @media only screen and (min-width: 850px) {
@@ -41,7 +39,7 @@ p code { display: inline-block; }
     }
 
     .content {
-        width: 40%;
+        width: 43%;
         margin-top: auto;
         margin-bottom: auto;
         margin: 0 auto;

@@ -1,5 +1,5 @@
 # Water levels and temperatures across Canada
-*July 13, 2025*
+[Abigail Adegbiji](https://aabiji.github.io/) • July 13, 2025
 
 ![Gauging stations](lakes/gauging_stations.png)
 
