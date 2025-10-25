@@ -3,6 +3,7 @@
 I like [building things](https://github.com/aabiji), reading books and working out.
 
 I also like to write sometimes.
+
 - [Drawing Apollonian Gaskets](gasket.md)
 
 - [Confidently wrong](wrong.md)
