@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+
+        
+        <script type="text/javascript" id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+        </script>
+
+        
+        <link href="https://fonts.googleapis.com/css?family=Inter" rel="stylesheet">
+
+        <title>  What do noise functions sound like? </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="../assets/styles.css">
+    </head>
+
+    <body>
+        <div class="content"><h1>What do noise functions sound like?</h1>
+
+<p><a href="https://aabiji.github.io/">Abigail Adegbiji</a> • November 9, 2025</p>
+
+<p>Lately I&rsquo;ve been building a voxel game engine, which requires procedurally generated
+terrain. A nice approach is to break up the terrain into chunks and
+then sample a noise function to get the height values of the top layer voxels.
+This has led me to be curious about how different functions work, as well as how they sound like.</p>
+
+<h3>White noise</h3>
+
+<p>White noise is the simplex type of noise, it&rsquo;s quite literally just a sequence of random values.
+A basic implementation might look like this:</p>
+
+<pre><code class="language-cpp">float white()
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution&lt;float&gt; dist(0.0f, 1.0f);
+    return dist(gen);
+}
+</code></pre>
+
+<p>To actually hear the noise, the samples need to be written to an audio file.
+Of course, it&rsquo;s be nice to listen to it, so we&rsquo;ll write the noise to
+Here, we&rsquo;ll just write to a<a href="https://www.hydrogen18.com/blog/joys-of-writing-a-wav-file.html">wav file</a>.</p>
+
+<pre><code class="language-cpp">struct WavHeader
+{
+    // riff header
+    uint8_t riff_chunk_id[4];
+    uint32_t total_file_size;
+    uint8_t riff_format[4];
+    // fmt chunk
+    uint8_t fmt_chunk_id[4];
+    uint32_t fmt_chunk_size;
+    uint16_t audio_format;
+    uint16_t num_channels;
+    uint32_t sample_rate;
+    uint32_t byte_rate;
+    uint16_t bytes_per_sample;
+    uint16_t bits_per_sample;
+    // data chunk
+    uint8_t data_chunk_id[4];
+    uint32_t data_chunk_size;
+};
+
+int main()
+{
+    int seconds = 10;
+    uint32_t frequency = 44100; // samples per second
+    uint32_t num_samples = frequency * seconds;
+    int bytes_per_sample = sizeof(int16_t); // 16 bit pcm samples
+    uint32_t num_sample_bytes = num_samples * bytes_per_sample;
+
+    std::random_device device;
+    std::mt19937 engine(device());
+    std::uniform_int_distribution&lt;int16_t&gt; distribution(-32767, 32767);
+
+    // generate noise samples
+    std::vector&lt;int16_t&gt; samples;
+    samples.resize(num_samples);
+    for (size_t t = 0; t &lt; samples.size(); t++) {
+        float noise = white();
+        samples[t] = (int16_t)(-32767.0f + noise * 65535.0f);
+    }
+
+    WavHeader header = {
+        .total_file_size = num_sample_bytes + 44,
+        .fmt_chunk_size = 16,
+        .audio_format = 1, // uncompressed samples
+        .num_channels = 1, // mono audio
+        .sample_rate = frequency,
+        .byte_rate = frequency * bytes_per_sample,
+        .bytes_per_sample = (uint16_t)bytes_per_sample,
+        .bits_per_sample = (uint16_t)(bytes_per_sample * 8),
+        .data_chunk_size = num_sample_bytes,
+    };
+    memcpy(header.riff_chunk_id, &quot;RIFF&quot;, 4);
+    memcpy(header.riff_format, &quot;WAVE&quot;, 4);
+    memcpy(header.fmt_chunk_id, &quot;fmt &quot;, 4);
+    memcpy(header.data_chunk_id, &quot;data&quot;, 4);
+
+    std::ofstream output(&quot;output.wav&quot;, std::ios::binary | std::ios::out);
+    output.write((char*)&amp;header, sizeof(WavHeader));
+    output.write((char*)samples.data(), samples.size() * sizeof(int16_t));
+    output.close();
+}
+</code></pre>
+
+<p><audio controls>
+  <source src="noise-sounds/white.wav" type="audio/wav">
+</audio></p>
+
+<p>The result is harsh and staticky because every sample is completely independent and random.</p>
+
+<h3>Brown noise</h3>
+
+<p>Brown noise (named after Brownian motion, not the color), takes a different approach.
+Instead of independent samples, brown noise uses a random walk process, where each sample
+is the previous sample plus a small, random step. This creates a correlation between
+consecutive values, resulting in a smoother sound.</p>
+
+<pre><code class="language-cpp">float brown() {
+    const float decay = 0.999f; // prevents the value from drifting too far
+
+    static float value = 0;
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution&lt;float&gt; dist(0.0f, 1.0f);
+
+    std::uniform_real_distribution&lt;float&gt; step_dist(-0.1f, 0.1f);
+    value = std::clamp(value * decay + step_dist(gen), 0.0f, 1.0f);
+    return value;
+}
+</code></pre>
+
+<p>Brown noise sounds softer, deeper and more rumbling than white noise
+the random walk process naturally emphasizes lower frequencies.</p>
+
+<p><audio controls>
+  <source src="noise-sounds/brown.wav" type="audio/wav">
+</audio></p>
+
+<h1>Perlin noise</h1>
+
+<p>Neither white noise or brown works well for terrain generation.
+White noise creates completely chaotic landscapes while Brown noise drifts
+unpredictably without spatial coherence. What&rsquo;s needed is <em>coherent</em> noise,
+where nearby points have similar values, creating smooth continuous variations.
+This is where algorithmns like Perlin Noise come in.</p>
+
+<p>Perlin noise is a type of gradient noise that creates smooth, natural looking patterns.
+Imagine a grid where each intersection has an arrow pointing in a random direction (the gradient).
+To find the value at any point, look at the four surrounding grid corners, calculate
+how much each corner&rsquo;s gradient influences the point, then interpolate those influences together.</p>
+
+<p>This implementation requires a few helper functions and a hash
+function to generate random gradients.</p>
+
+<pre><code class="language-cpp">struct vec2 { float x, y; };
+inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+inline float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
+
+// Using xxHash for deterministic randomness
+int hash(int x, int y)
+{
+    int h = x * 3266489917 + y * 668265263;
+    h ^= h &gt;&gt; 15;
+    h *= 2246822519;
+    h ^= h &gt;&gt; 13;
+    h *= 3266489917;
+    h ^= h &gt;&gt; 16;
+    return h;
+}
+
+// Create a random gradient vector
+vec2 gradient(int x, int y)
+{
+    vec2 directions[] = {
+        vec2{1, 0}, vec2{-1, 0}, vec2{0, 1}, vec2{0, -1},
+        vec2{1, 1}, vec2{-1, 1}, vec2{1, -1}, vec2{-1, -1}
+    };
+    return directions[hash(x, y) &amp; 7];
+}
+
+float perlin(float x, float y)
+{
+    // get the grid cell the point's in and
+    // the direction of the point in that grid cell
+    int X = std::floor(x);
+    int Y = std::floor(y);
+    float dx = x - X;
+    float dy = y - Y;
+
+    // get the gradient vectors for each corner
+    vec2 gtl = gradient(X, Y);
+    vec2 gtr = gradient(X + 1, Y);
+    vec2 gbl = gradient(X, Y + 1);
+    vec2 gbr = gradient(X + 1, Y + 1);
+
+    // compute dot products to get the gradient values for each corner
+    float vtl = gtl.x * dx       + gtl.y * dy;
+    float vtr = gtr.x * (dx - 1) + gtr.y * dy;
+    float vbl = gbl.x * dx       + gbl.y * (dy - 1);
+    float vbr = gbr.x * (dx - 1) + gbr.y * (dy - 1);
+
+    // interpolate those values
+    float a = lerp(vtl, vtr, fade(dx));
+    float b = lerp(vbl, vbr, fade(dx));
+    float noise = lerp(a, b, fade(dy));
+    return noise * 0.7f + 0.5f;
+}
+</code></pre>
+
+<p><audio controls>
+  <source src="noise-sounds/perlin.wav" type="audio/wav">
+</audio></p>
+
+<p>Perlin noise works really well for terrain generation, but has some limitations. The
+square grid can cause subtle direcitonal artifacts, and it&rsquo;s not the most efficient.
+Evaluating 4 grid corners (8 in 3D) and multiple interpolations per sample adds up.</p>
+
+<h3>Simplex noise</h3>
+
+<p>Simplex noise addresses these limitations. Instead of using a square grid, it uses a simplex grid,
+which has no directional bias and needs fewer corner evaluations (3 points in 2D instead of 4).
+Simplex noise first transforms the input coordinates from regular (x, y) space into a skewed grid
+space. Then it determines which simplex the point falls in, gets the contributions from each corner
+of the simplex then uses <em>radial falloff</em>, where each corner&rsquo;s contribution fades out in a circular fashion.</p>
+
+<pre><code class="language-cpp">float simplex(float x, float y)
+{
+    // get the coordinate of the simplex cell the point's in
+    float skew = 0.5f * (sqrt(3.0f) - 1.0f);
+    int i = std::floor(x + (x + y) * skew);
+    int j = std::floor(y + (x + y) * skew);
+
+    // unskew back to (x, y) space
+    float unskew = (3.0f - sqrt(3.0f)) / 6.0f;
+    float x0 = x - (i - (i + j) * unskew);
+    float y0 = y - (j - (i + j) * unskew);
+
+    // determine the simplex the point's in (upper or lower triangle)
+    int i1 = x0 &gt; y0 ? 1 : 0;
+    int j1 = x0 &gt; y0 ? 0 : 1;
+
+    // get the gradients for the corner
+    vec2 g0 = gradient(i, j);
+    vec2 g1 = gradient(i + i1, j + j1);
+    vec2 g2 = gradient(i + 1, j + 1);
+
+    // get the corner coordinates
+    float x1 = x0 - i1 + unskew;
+    float y1 = y0 - j1 + unskew;
+    float x2 = x0 - 1.0f + 2.0f * unskew;
+    float y2 = y0 - 1.0f + 2.0f * unskew;
+
+    // sum the contributions from each corner
+    float sum = 0.0f;
+
+    float t0 = 0.5f - x0 * x0 - y0 * y0;
+    if (t0 &gt; 0) sum += t0 * t0 * t0 * t0 * (g0.x * x0 + g0.y * y0);
+
+    float t1 = 0.5f - x1 * x1 - y1 * y1;
+    if (t1 &gt; 0) sum += t1 * t1 * t1 * t1 * (g1.x * x1 + g1.y * y1);
+
+    float t2 = 0.5f - x2 * x2 - y2 * y2;
+    if (t2 &gt; 0) sum += t2 * t2 * t2 * t2 * (g2.x * x2 + g2.y * y2);
+
+    // normalize to a range of 0 to 1
+    return 70.0f * sum * 0.5f + 0.5f;
+}
+</code></pre>
+
+<p><audio controls>
+  <source src="noise-sounds/simplex.wav" type="audio/wav">
+</audio></p>
+
+<p>The same gradient function from Perlin noise works here too.</p>
+
+<h3>Worley noise</h3>
+
+<p>Worley noise (also called Voronoi noise or Cellular noise) takes a completely different approach.
+Instead of interpolating between gradients, it measures distances to random feature points,
+creating cellular patterns with distinct boundaries between regions.
+The algorithm&rsquo;s really simple. It divides the space into a grid, picks a random feature
+point in each grid cell, finds the nearest feature point for any query position and returns
+the distance to that point.</p>
+
+<pre><code class="language-cpp">float worley(float x, float y)
+{
+    int cell_x = std::floor(x);
+    int cell_y = std::floor(y);
+
+    float min_dist = std::numeric_limits&lt;float&gt;::max();
+
+    // check the current cell and the 9 neighboring cells
+    for (int dy = -1; dy &lt;= 1; dy++) {
+        for (int dx = -1; dx &lt;= 1; dx++) {
+            int neighbor_x = cell_x + dx;
+            int neighbor_y = cell_y + dy;
+
+            // generate a random feature point's position in this cell (0 to 1 range)
+            int h = hash(neighbor_x, neighbor_y);
+            float point_x = neighbor_x + ((h &amp; 0xFFFF) / 65535.0f);
+            float point_y = neighbor_y + (((h &gt;&gt; 16) &amp; 0xFFFF) / 65535.0f);
+
+            // get the distance to the point
+            float dist_x = x - point_x;
+            float dist_y = y - point_y;
+            float dist = sqrt(dist_x * dist_x + dist_y * dist_y);
+
+            min_dist = std::min(min_dist, dist);
+        }
+    }
+
+    return std::clamp(min_dist, 0.0f, 1.0f);
+}
+</code></pre>
+
+<p><audio controls>
+  <source src="noise-sounds/worley.wav" type="audio/wav">
+</audio></p>
+
+<h3>Fractal noise</h3>
+
+<p>All the noise functions show so far produce a single frequency (smooth at only one particular scale).
+But natural phenoma have detail at multiple scales. Fractal noise (also called fractional Brownian motion) solves this by simply layering multiple &ldquo;octaves&rdquo; of noise at different frequencies
+and amplitudes.</p>
+
+<pre><code class="language-cpp">float fractal(float x, float y, int octaves)
+{
+    float lacunarity = 2.0; // how much frequency decreases each octave
+    float persistence = 0.5; // how much amplitude decreases each octave
+    float frequency = 1.0f;
+    float amplitude = 1.0f;
+
+    float total = 0.0f;
+    float max_value = 0.0f;
+
+    // layer octaves of noise on top of each other
+    for (int i = 0; i &lt; octaves; i++) {
+         // Can change the specific noise function used
+        total += simplex(x * frequency, y * frequency) * amplitude;
+        max_value += amplitude;
+
+        // increase frequency, decrease amplitude
+        frequency *= lacunarity;
+        amplitude *= persistence;
+    }
+
+    return total / max_value; // normalize to a range of 0 to 1
+}
+</code></pre>
+
+<p><audio controls>
+  <source src="noise-sounds/fractal.wav" type="audio/wav">
+</audio></p>
+
+<p>Fractal noise works with any base noise function, and creates this complex layered output.</p>
+
+<hr>
+
+<p>Each noise function has its own character and use case. Perlin and Simplex noise
+provide smooth gradients. Worley creates cellular patterns and fractal noise adds detail
+at multiple scales. They also sound cool.</p>
+
+<p>You can find the full source code <a href="https://gist.github.com/aabiji/6bdbc00fe2102eb479070e6ca4c45cda">here</a>.</p>
+</div>
+    </body>
+</html>

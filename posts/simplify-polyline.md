@@ -9,7 +9,7 @@ One popular algorithm for this is the
 [Ramer-Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm), But it doesn't
 let you control the exact number of output points, instead it removes
 points based on a distance threshold (ε). To reach
-a specific number of points the algorithm has to be ran multiple
+a specific number of points, the algorithm has to be ran multiple
 times, (doing binary search over ε), which is inefficient.
 
 A better approach is the [Visvalingam-Whyatt algorithm](https://en.wikipedia.org/wiki/Visvalingam%E2%80%93Whyatt_algorithm).

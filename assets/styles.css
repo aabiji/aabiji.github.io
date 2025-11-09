@@ -32,7 +32,7 @@ code {
 p code { display: inline-block; }
 
 /* Desktop view */
-@media only screen and (min-width: 850px) {
+@media only screen and (min-width: 900px) {
     body {
         min-height: 100vh;
         margin: 0;
@@ -40,7 +40,7 @@ p code { display: inline-block; }
     }
 
     .content {
-        width: 43%;
+        width: 45%;
         margin-top: auto;
         margin-bottom: auto;
         margin: 0 auto;

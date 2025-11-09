@@ -122,7 +122,8 @@ and our app is written in Go, we need a way to bridge the two.
 This is where the Java Native Interface (JNI) comes in.
 
 The JNI enables native code (written in C/C++) to interact with Java code.
-It operates through a set of functions exposed via a `JNIEnv` pointer,
+It operates through a set of functions exposed via a
+[`JNIEnv`](https://developer.android.com/ndk/guides/jni-tips) pointer,
 which serves as the entry point for most JNI operations. These functions allow you to
 locate java classes by name, create java objects from native data, invoke java methods,
 handle exceptions and manage JVM state.
