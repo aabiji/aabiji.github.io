@@ -31,7 +31,7 @@ This has led me to be curious about how different functions work, as well as how
 
 <h3>White noise</h3>
 
-<p>White noise is the simplex type of noise, it&rsquo;s quite literally just a sequence of random values.
+<p>White noise is the simplest type of noise; it&rsquo;s quite literally just a sequence of random values.
 A basic implementation might look like this:</p>
 
 <pre><code class="language-cpp">float white()
@@ -45,7 +45,7 @@ A basic implementation might look like this:</p>
 
 <p>To actually hear the noise, the samples need to be written to an audio file.
 Of course, it&rsquo;s be nice to listen to it, so we&rsquo;ll write the noise to
-Here, we&rsquo;ll just write to a<a href="https://www.hydrogen18.com/blog/joys-of-writing-a-wav-file.html">wav file</a>.</p>
+Here, we&rsquo;ll just write to a <a href="https://www.hydrogen18.com/blog/joys-of-writing-a-wav-file.html">wav file</a>.</p>
 
 <pre><code class="language-cpp">struct WavHeader
 {
@@ -111,7 +111,7 @@ int main()
 </code></pre>
 
 <p><audio controls>
-  <source src="noise-sounds/white.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/white.wav" type="audio/wav">
 </audio></p>
 
 <p>The result is harsh and staticky because every sample is completely independent and random.</p>
@@ -141,7 +141,7 @@ consecutive values, resulting in a smoother sound.</p>
 the random walk process naturally emphasizes lower frequencies.</p>
 
 <p><audio controls>
-  <source src="noise-sounds/brown.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/brown.wav" type="audio/wav">
 </audio></p>
 
 <h1>Perlin noise</h1>
@@ -216,7 +216,7 @@ float perlin(float x, float y)
 </code></pre>
 
 <p><audio controls>
-  <source src="noise-sounds/perlin.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/perlin.wav" type="audio/wav">
 </audio></p>
 
 <p>Perlin noise works really well for terrain generation, but has some limitations. The
@@ -276,7 +276,7 @@ of the simplex then uses <em>radial falloff</em>, where each corner&rsquo;s cont
 </code></pre>
 
 <p><audio controls>
-  <source src="noise-sounds/simplex.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/simplex.wav" type="audio/wav">
 </audio></p>
 
 <p>The same gradient function from Perlin noise works here too.</p>
@@ -322,7 +322,7 @@ the distance to that point.</p>
 </code></pre>
 
 <p><audio controls>
-  <source src="noise-sounds/worley.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/worley.wav" type="audio/wav">
 </audio></p>
 
 <h3>Fractal noise</h3>
@@ -357,7 +357,7 @@ and amplitudes.</p>
 </code></pre>
 
 <p><audio controls>
-  <source src="noise-sounds/fractal.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/fractal.wav" type="audio/wav">
 </audio></p>
 
 <p>Fractal noise works with any base noise function, and creates this complex layered output.</p>
