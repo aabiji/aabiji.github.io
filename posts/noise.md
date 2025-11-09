@@ -8,7 +8,7 @@ This has led me to be curious about how different functions work, as well as how
 
 ### White noise
 
-White noise is the simplex type of noise, it's quite literally just a sequence of random values.
+White noise is the simplest type of noise; it's quite literally just a sequence of random values.
 A basic implementation might look like this:
 ```cpp
 float white()
@@ -22,7 +22,7 @@ float white()
 
 To actually hear the noise, the samples need to be written to an audio file.
 Of course, it's be nice to listen to it, so we'll write the noise to
-Here, we'll just write to a[wav file](https://www.hydrogen18.com/blog/joys-of-writing-a-wav-file.html).
+Here, we'll just write to a [wav file](https://www.hydrogen18.com/blog/joys-of-writing-a-wav-file.html).
 ```cpp
 struct WavHeader
 {
@@ -88,7 +88,7 @@ int main()
 ```
 
 <audio controls>
-  <source src="noise-sounds/white.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/white.wav" type="audio/wav">
 </audio>
 
 The result is harsh and staticky because every sample is completely independent and random.
@@ -118,7 +118,7 @@ Brown noise sounds softer, deeper and more rumbling than white noise
 the random walk process naturally emphasizes lower frequencies.
 
 <audio controls>
-  <source src="noise-sounds/brown.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/brown.wav" type="audio/wav">
 </audio>
 
 # Perlin noise
@@ -194,7 +194,7 @@ float perlin(float x, float y)
 ```
 
 <audio controls>
-  <source src="noise-sounds/perlin.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/perlin.wav" type="audio/wav">
 </audio>
 
 Perlin noise works really well for terrain generation, but has some limitations. The
@@ -256,7 +256,7 @@ float simplex(float x, float y)
 
 
 <audio controls>
-  <source src="noise-sounds/simplex.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/simplex.wav" type="audio/wav">
 </audio>
 
 The same gradient function from Perlin noise works here too.
@@ -303,7 +303,7 @@ float worley(float x, float y)
 ```
 
 <audio controls>
-  <source src="noise-sounds/worley.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/worley.wav" type="audio/wav">
 </audio>
 
 ### Fractal noise
@@ -339,7 +339,7 @@ float fractal(float x, float y, int octaves)
 ```
 
 <audio controls>
-  <source src="noise-sounds/fractal.wav" type="audio/wav">
+  <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/fractal.wav" type="audio/wav">
 </audio>
 
 Fractal noise works with any base noise function, and creates this complex layered output.
