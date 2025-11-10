@@ -7,7 +7,7 @@ Some of the things I've made include:
 - [Focal](https://aabiji.github.io/focal/), a simple pomodoro website
 - [Muse](https://github.com/aabiji/muse), a cli music player
 
-I also write sometimes:
+I also like to write:
 
 - [What do noise functions sound like?](noise.md)
 - [Simplifying polylines to exactly *n* points](simplify-polyline.md)

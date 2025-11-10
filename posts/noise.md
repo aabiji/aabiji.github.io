@@ -46,29 +46,37 @@ struct WavHeader
 
 int main()
 {
-    int seconds = 10;
+    int seconds = 15;
     uint32_t frequency = 44100; // samples per second
     uint32_t num_samples = frequency * seconds;
-    int bytes_per_sample = sizeof(int16_t); // 16 bit pcm samples
+    int bytes_per_sample = sizeof(int16_t);
     uint32_t num_sample_bytes = num_samples * bytes_per_sample;
 
     std::random_device device;
     std::mt19937 engine(device());
     std::uniform_int_distribution<int16_t> distribution(-32767, 32767);
 
-    // generate noise samples
+    // generate noise
     std::vector<int16_t> samples;
     samples.resize(num_samples);
-    for (size_t t = 0; t < samples.size(); t++) {
+    for (size_t i = 0; i < samples.size(); i++) {
+        // We'll implement these later:
+        //float hertz = (float(i) / frequency) * 261.6256; // seconds * Middle C note frequency
+        //float noise = brown();
+        //float noise = perlin(hertz, 0);
+        //float noise = simplex(hertz, 0);
+        //float noise = worley(hertz, 0);
+        //float noise = fractal(hertz, 0, 3);
+
         float noise = white();
-        samples[t] = (int16_t)(-32767.0f + noise * 65535.0f);
+        samples[i] = (int16_t)(-32767.0f + noise * 65535.0f);
     }
 
     WavHeader header = {
         .total_file_size = num_sample_bytes + 44,
         .fmt_chunk_size = 16,
         .audio_format = 1, // uncompressed samples
-        .num_channels = 1, // mono audio
+        .num_channels = 1,
         .sample_rate = frequency,
         .byte_rate = frequency * bytes_per_sample,
         .bytes_per_sample = (uint16_t)bytes_per_sample,
@@ -350,4 +358,4 @@ Each noise function has its own character and use case. Perlin and Simplex noise
 provide smooth gradients. Worley creates cellular patterns and fractal noise adds detail
 at multiple scales. They also sound cool.
 
-You can find the full source code [here](https://gist.github.com/aabiji/6bdbc00fe2102eb479070e6ca4c45cda).
+You can find the full source code [here](https://gist.github.com/aabiji/f940dc6ccd3565188d134a5b17c880da).
