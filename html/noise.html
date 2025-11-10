@@ -22,7 +22,7 @@
     <body>
         <div class="content"><h1>What do noise functions sound like?</h1>
 
-<p><a href="https://aabiji.github.io/">Abigail Adegbiji</a> • November 9, 2025</p>
+<p><a href="https://aabiji.github.io/">Abigail Adegbiji</a> • November 10, 2025</p>
 
 <p>Lately I&rsquo;ve been building a voxel game engine, which requires procedurally generated
 terrain. A nice approach is to break up the terrain into chunks and
@@ -44,7 +44,6 @@ A basic implementation might look like this:</p>
 </code></pre>
 
 <p>To actually hear the noise, the samples need to be written to an audio file.
-Of course, it&rsquo;s be nice to listen to it, so we&rsquo;ll write the noise to
 Here, we&rsquo;ll just write to a <a href="https://www.hydrogen18.com/blog/joys-of-writing-a-wav-file.html">wav file</a>.</p>
 
 <pre><code class="language-cpp">struct WavHeader
@@ -131,16 +130,36 @@ Instead of independent samples, brown noise uses a random walk process, where ea
 is the previous sample plus a small, random step. This creates a correlation between
 consecutive values, resulting in a smoother sound.</p>
 
-<pre><code class="language-cpp">float brown() {
-    const float decay = 0.999f; // prevents the value from drifting too far
+<pre><code class="language-cpp">float brown()
+{
+    const float decay = 0.89f; // prevents the value from drifting too far
 
     static float value = 0;
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    static std::uniform_real_distribution&lt;float&gt; dist(0.0f, 1.0f);
 
     std::uniform_real_distribution&lt;float&gt; step_dist(-0.1f, 0.1f);
     value = std::clamp(value * decay + step_dist(gen), 0.0f, 1.0f);
+    return value;
+}
+</code></pre>
+
+<p>In practice, the better way to implement brown noise would just be to sample white
+noise while applying a low pass filter. A low pass filter lets low frequencies pass through
+while blocking high frequencies.</p>
+
+<pre><code class="language-cpp">float brown()
+{
+    static float value = 0.0;
+
+    // apply a low pass filter to white noise
+    const float smoothing_factor = 0.1f;
+    value = value + smoothing_factor * (white() - value);
+
+    // ensure the value stays in a range of 0 to 1
+    if (value &gt; 1.0f) value = 2.0f - value;
+    if (value &lt; 0.0f) value = -value;
+
     return value;
 }
 </code></pre>
@@ -152,7 +171,7 @@ the random walk process naturally emphasizes lower frequencies.</p>
   <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/brown.wav" type="audio/wav">
 </audio></p>
 
-<h1>Perlin noise</h1>
+<h3>Perlin noise</h3>
 
 <p>Neither white noise or brown works well for terrain generation.
 White noise creates completely chaotic landscapes while Brown noise drifts
@@ -242,6 +261,8 @@ of the simplex then uses <em>radial falloff</em>, where each corner&rsquo;s cont
 <pre><code class="language-cpp">float simplex(float x, float y)
 {
     // get the coordinate of the simplex cell the point's in
+    // a 2d simplex is a triangle, so the coordinate is being
+    // mapped to a triangular grid
     float skew = 0.5f * (sqrt(3.0f) - 1.0f);
     int i = std::floor(x + (x + y) * skew);
     int j = std::floor(y + (x + y) * skew);

@@ -1,5 +1,5 @@
 # What do noise functions sound like?
-[Abigail Adegbiji](https://aabiji.github.io/) • November 9, 2025
+[Abigail Adegbiji](https://aabiji.github.io/) • November 10, 2025
 
 Lately I've been building a voxel game engine, which requires procedurally generated
 terrain. A nice approach is to break up the terrain into chunks and
@@ -21,7 +21,6 @@ float white()
 ```
 
 To actually hear the noise, the samples need to be written to an audio file.
-Of course, it's be nice to listen to it, so we'll write the noise to
 Here, we'll just write to a [wav file](https://www.hydrogen18.com/blog/joys-of-writing-a-wav-file.html).
 ```cpp
 struct WavHeader
@@ -108,16 +107,37 @@ is the previous sample plus a small, random step. This creates a correlation bet
 consecutive values, resulting in a smoother sound.
 
 ```cpp
-float brown() {
-    const float decay = 0.999f; // prevents the value from drifting too far
+float brown()
+{
+    const float decay = 0.89f; // prevents the value from drifting too far
 
     static float value = 0;
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    static std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
     std::uniform_real_distribution<float> step_dist(-0.1f, 0.1f);
     value = std::clamp(value * decay + step_dist(gen), 0.0f, 1.0f);
+    return value;
+}
+```
+
+In practice, the better way to implement brown noise would just be to sample white
+noise while applying a low pass filter. A low pass filter lets low frequencies pass through
+while blocking high frequencies.
+
+```cpp
+float brown()
+{
+    static float value = 0.0;
+
+    // apply a low pass filter to white noise
+    const float smoothing_factor = 0.1f;
+    value = value + smoothing_factor * (white() - value);
+
+    // ensure the value stays in a range of 0 to 1
+    if (value > 1.0f) value = 2.0f - value;
+    if (value < 0.0f) value = -value;
+
     return value;
 }
 ```
@@ -129,7 +149,7 @@ the random walk process naturally emphasizes lower frequencies.
   <source src="https://raw.githubusercontent.com/aabiji/aabiji.github.io/main/assets/noise-sounds/brown.wav" type="audio/wav">
 </audio>
 
-# Perlin noise
+### Perlin noise
 
 Neither white noise or brown works well for terrain generation.
 White noise creates completely chaotic landscapes while Brown noise drifts
@@ -221,6 +241,8 @@ of the simplex then uses *radial falloff*, where each corner's contribution fade
 float simplex(float x, float y)
 {
     // get the coordinate of the simplex cell the point's in
+    // a 2d simplex is a triangle, so the coordinate is being
+    // mapped to a triangular grid
     float skew = 0.5f * (sqrt(3.0f) - 1.0f);
     int i = std::floor(x + (x + y) * skew);
     int j = std::floor(y + (x + y) * skew);

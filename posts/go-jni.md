@@ -1,4 +1,4 @@
-# Calling Java from Go in a Gio UI Android App
+# Calling Java from a Gio UI Android App
 [Abigail Adegbiji](https://aabiji.github.io/) • August 12, 2025
 
 Lately I've been playing around with [Gio UI](https://gioui.org/), a UI

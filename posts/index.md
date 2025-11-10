@@ -11,7 +11,6 @@ I also like to write:
 
 - [What do noise functions sound like?](noise.md)
 - [Simplifying polylines to exactly *n* points](simplify-polyline.md)
-- [Calling Java from Go in a Gio UI Android App](go-jni.md)
+- [Calling Java from a Gio UI Android App](go-jni.md)
 - [Water levels and temperatures across Canada](lakes.md)
-- [Confidently wrong](wrong.md)
 - [Drawing Apollonian Gaskets](gasket.md)
