@@ -1,8 +1,8 @@
 # Hi, I'm Abigail
 
-I like [building software](https://github.com/aabiji?tab=repositories), and occasionally I also write:
+I like [building software](https://github.com/aabiji), occasionally writing about things I find interesting.
 
-- [Drawing 3D shapes using signed distance functions](sdfs.md)
+- [Notes on signed distance functions](sdfs.md)
 - [What do noise functions sound like?](noise.md)
 - [Simplifying polylines to exactly *n* points](simplify-polyline.md)
 - [Calling Java from a Gio UI Android App](go-jni.md)

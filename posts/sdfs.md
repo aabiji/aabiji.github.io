@@ -1,14 +1,15 @@
-# Drawing 3D shapes using signed distance functions
-[Abigail Adegbiji](https://aabiji.github.io/) • February 21, 2026
+# Notes on signed distance functions
+[Abigail Adegbiji](https://aabiji.github.io/) • February 22, 2026
 
-Signed distance functions (SDFs) are really cool. They're functions that take
-a point in 3D space and return the shortest signed distance to the nearest surface.
+Signed Distance Functions are really cool. They're functions that take
+a point in space and return the shortest signed distance to the nearest surface.
 Positive if outside the shape, negative if inside, and zero if exactly on the surface.
 
 Using the classic sphere example:
 
 $f(x, y, z) = \sqrt{x^2 + y^2 + z^2} - r$
-where $(x, y, z)$ is the point being tested, and $r$ is the sphere's radius,
+
+Where $(x, y, z)$ is the point being tested, and $r$ is the sphere's radius,
 centered at (0, 0, 0) for simplicity.
 
 Combined with ray marching, SDFs are very powerful rendering tools. Instead of
@@ -47,16 +48,17 @@ Each fragment gets its own ray. The ray's direction is just:
 vec2 uv = (gl_FragCoord - 0.5 * resolution) / resolution.y;
 
 // Map a ray pointing into the scene to camera space.
-vec3 ray_direction = normalize(mat3(camera_matrix) * vec3(uv, -1.0));
+vec3 ray_direction = normalize(mat3(view_matrix) * vec3(uv, -1.0));
 ```
 
 Now for the actual SDF itself. We can store all the object data, like position and size
-in a uniform buffer that we can access in the fragment shader. Then in the scene's
+in a uniform buffer that we can access in the fragment shader. Then in the
 SDF function, we just find the surface that's closest to the ray's point. This way,
 we can render multiple objects without needing instancing.
 
 ```c
 // `SphereData`, `num_spheres` and `uniform_spheres_data` are defined up here...
+
 // Example that draws spheres:
 float scene_SDF(vec3 point) {
     float min_dist = 999.9f;
@@ -87,4 +89,18 @@ vec3 gradient(vec3 p) {
 }
 ```
 
-From here we can proceed to do the rest of our lighting calculations.
+From here we can proceed to do the rest of our lighting calculations, perhaps some basic Phong shading:
+```c
+vec3 ambient = ambient_color * light_color;
+
+vec3 light_dir = normalize(light_pos - world_pos);
+vec3 diff = max(dot(normal, light_dir), 0.0);
+vec3 diffuse = diffuse_color * diff * light_color;
+
+vec3 view_dir = normalize(view_pos - world_pos);
+vec3 halfway = normalize(light_dir + view_dir);
+float spec = pow(max(dot(normal, halfway), 0.0), shininess);
+vec3 specular = specular_color * spec * light_color;
+
+fragColor = vec4(ambient + diffuse + specular, 1.0);
+```
