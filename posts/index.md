@@ -2,6 +2,7 @@
 
 I like [building software](https://github.com/aabiji), occasionally writing about things I find interesting.
 
+- [Immortality](immortality.md)
 - [Notes on signed distance functions](sdfs.md)
 - [What do noise functions sound like?](noise.md)
 - [Simplifying polylines to exactly *n* points](simplify-polyline.md)

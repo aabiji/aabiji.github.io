@@ -14,24 +14,25 @@
         
         <link href="https://fonts.googleapis.com/css?family=Inter" rel="stylesheet">
 
-        <title>  Drawing 3D shapes using signed distance functions </title>
+        <title>  Notes on signed distance functions </title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="../assets/styles.css">
     </head>
 
     <body>
-        <div class="content"><h1>Drawing 3D shapes using signed distance functions</h1>
+        <div class="content"><h1>Notes on signed distance functions</h1>
 
-<p><a href="https://aabiji.github.io/">Abigail Adegbiji</a> • February 21, 2026</p>
+<p><a href="https://aabiji.github.io/">Abigail Adegbiji</a> • February 22, 2026</p>
 
-<p>Signed distance functions (SDFs) are really cool. They&rsquo;re functions that take
-a point in 3D space and return the shortest signed distance to the nearest surface.
+<p>Signed Distance Functions are really cool. They&rsquo;re functions that take
+a point in space and return the shortest signed distance to the nearest surface.
 Positive if outside the shape, negative if inside, and zero if exactly on the surface.</p>
 
 <p>Using the classic sphere example:</p>
 
-<p><span class="math inline">\(f(x, y, z) = \sqrt{x^2 + y^2 + z^2} - r\)</span>
-where <span class="math inline">\((x, y, z)\)</span> is the point being tested, and <span class="math inline">\(r\)</span> is the sphere&rsquo;s radius,
+<p><span class="math inline">\(f(x, y, z) = \sqrt{x^2 + y^2 + z^2} - r\)</span></p>
+
+<p>Where <span class="math inline">\((x, y, z)\)</span> is the point being tested, and <span class="math inline">\(r\)</span> is the sphere&rsquo;s radius,
 centered at (0, 0, 0) for simplicity.</p>
 
 <p>Combined with ray marching, SDFs are very powerful rendering tools. Instead of
@@ -69,15 +70,16 @@ a ray heading straight at an isolated object converges in very few, very large s
 vec2 uv = (gl_FragCoord - 0.5 * resolution) / resolution.y;
 
 // Map a ray pointing into the scene to camera space.
-vec3 ray_direction = normalize(mat3(camera_matrix) * vec3(uv, -1.0));
+vec3 ray_direction = normalize(mat3(view_matrix) * vec3(uv, -1.0));
 </code></pre>
 
 <p>Now for the actual SDF itself. We can store all the object data, like position and size
-in a uniform buffer that we can access in the fragment shader. Then in the scene&rsquo;s
+in a uniform buffer that we can access in the fragment shader. Then in the
 SDF function, we just find the surface that&rsquo;s closest to the ray&rsquo;s point. This way,
 we can render multiple objects without needing instancing.</p>
 
 <pre><code class="language-c">// `SphereData`, `num_spheres` and `uniform_spheres_data` are defined up here...
+
 // Example that draws spheres:
 float scene_SDF(vec3 point) {
     float min_dist = 999.9f;
@@ -108,7 +110,21 @@ outwards, perpendicular to the surface.</p>
 }
 </code></pre>
 
-<p>From here we can proceed to do the rest of our lighting calculations.</p>
+<p>From here we can proceed to do the rest of our lighting calculations, perhaps some basic Phong shading:</p>
+
+<pre><code class="language-c">vec3 ambient = ambient_color * light_color;
+
+vec3 light_dir = normalize(light_pos - world_pos);
+vec3 diff = max(dot(normal, light_dir), 0.0);
+vec3 diffuse = diffuse_color * diff * light_color;
+
+vec3 view_dir = normalize(view_pos - world_pos);
+vec3 halfway = normalize(light_dir + view_dir);
+float spec = pow(max(dot(normal, halfway), 0.0), shininess);
+vec3 specular = specular_color * spec * light_color;
+
+fragColor = vec4(ambient + diffuse + specular, 1.0);
+</code></pre>
 </div>
     </body>
 </html>
