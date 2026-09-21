@@ -1,0 +1,14 @@
+title: Your Name
+description: Personal website and writing
+url: ""
+baseurl: ""
+
+markdown: kramdown
+permalink: /articles/:title/
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
