@@ -1,10 +1,15 @@
-title: Your Name
+title: Abigail Adegbiji
 description: Personal website and writing
 url: ""
 baseurl: ""
-
 markdown: kramdown
 permalink: /articles/:title/
+
+kramdown:
+  syntax_highlighter: rouge
+
+plugins:
+  - jekyll-feed
 
 defaults:
   - scope:
