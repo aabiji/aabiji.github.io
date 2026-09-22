@@ -3,7 +3,7 @@ title: "Notes on rotary position encoding"
 date: 2026-09-21
 ---
 
-All content from this article is taken from [(Su et al., 2021)](https://arxiv.org/pdf/2104.09864). I found the derivation of the paper's core idea hard to follow, so I wanted to write down my understanding of its mathematics.
+All content from this article is taken from [(Su et al., 2021)](https://arxiv.org/pdf/2104.09864). I found the derivation of the paper's core idea a bit tricky, so I wanted to write down my understanding of its mathematics.
 
 ---
 
@@ -31,7 +31,7 @@ $$
 
 So $\boldsymbol{q} = \boldsymbol{R_q} \boldsymbol{W_q} \boldsymbol{x_m}$. The same concept applies to $\boldsymbol{k}$ as well.
 
-Extending rotation to representations of an even dimension, we can divide the representation into $d / 2$ pairs. Each pair is treated as an independent 2D vector and is rotated independently. Each pair also uses different rotation frequencies, $\Theta = \{ 10000 ^ {-2 i / d}, i \in \{ 0, 1, 2, ... d / 2 - 1 \} \}$. So, a pair at $i$ in an representation at position $m$ is rotated by $m \Theta_i$ radians. Therefore, a complete rotation can be written as a block-diagonal matrix, or as a sum of two hadamard products for efficiency.
+Extending rotation to representations of an even dimension, we can divide the representation into $d / 2$ pairs. Each pair is treated as an independent 2D vector and is rotated independently. Each pair also uses different rotation frequencies, $\Theta = \\{ 10000 ^ {-2 i / d}, i \in \\{ 0, 1, 2, ... d / 2 - 1 \\} \\}$. So, a pair at $i$ in an representation at position $m$ is rotated by $m \Theta_i$ radians. A complete rotation can be written as a block-diagonal matrix, or as a sum of two Hadamard products for efficiency.
 
 $$
 
@@ -64,7 +64,8 @@ In practice, positional encodings are applied to several queries and keys at onc
 import torch
 
 def rope_encoding(x):
-  N, D = x.shape # N is the number of embeddings, D is the embedding dimension
+  # B: batch size, N: number of embeddings, D: embedding dimension
+  B, N, D = x.shape
 
   theta = 10000 ** ((-2 * torch.arange(D / 2)) / D)
   theta = torch.repeat_interleave(theta, repeats=2)
@@ -75,7 +76,7 @@ def rope_encoding(x):
   signs = ((-1) ** torch.arange(1, D + 1)).expand(N, -1)
   alt_idx = torch.arange(D + 1)[torch.arange(D) ^ 1]
 
-  return x * cos_angles + x[:, alt_idx] * signs * sin_angles
+  return x * cos_angles + x[:, :, alt_idx] * signs * sin_angles
 ```
 
 This construction offers a few more interesting properties that makes it better than other positional encoding schemes:
