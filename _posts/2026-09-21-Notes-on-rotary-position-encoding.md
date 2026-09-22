@@ -58,6 +58,26 @@ $$
 
 In summary, $ \boldsymbol{q^T k} = (\boldsymbol{R_q} \boldsymbol{W_q} \boldsymbol{x_m})^T (\boldsymbol{R_k} \boldsymbol{W_k} \boldsymbol{x_m}) $. Although queries and keys are rotated according to their absolute positions, their dot product contains a rotation determined by relative position $(n - m)$.
 
+In practice, positional encodings are applied to several queries and keys at once, with rotation angles cached for efficiency. A naive implementation might look like the following.
+
+```py
+import torch
+
+def rope_encoding(x):
+  N, D = x.shape # N is the number of embeddings, D is the embedding dimension
+
+  theta = 10000 ** ((-2 * torch.arange(D / 2)) / D)
+  theta = torch.repeat_interleave(theta, repeats=2)
+  angles = torch.arange(N)[:, None] * theta
+
+  # These can be cached
+  cos_angles, sin_angles = torch.cos(angles), torch.sin(angles)
+  signs = ((-1) ** torch.arange(1, D + 1)).expand(N, -1)
+  alt_idx = torch.arange(D + 1)[torch.arange(D) ^ 1]
+
+  return x * cos_angles + x[:, alt_idx] * signs * sin_angles
+```
+
 This construction offers a few more interesting properties that makes it better than other positional encoding schemes:
 
 - Rotations preserve the rotation of a vector. They also preserve the angle between two vectors when the same rotation is applied to both, so positional information is introduced by changing the direction of the representation rather than its magnitude.
@@ -65,5 +85,3 @@ This construction offers a few more interesting properties that makes it better 
 - The positional encoding is periodic. However, this isn't a problem in practice since multiple frequencies are used simultaneously. The lower indexed pairs rotate more quickly, while higher indexed pairs rotate more slowly, providing positional information at multiple scales and making each position encoding unique across massive context lengths.
 
 - As the relative distance between two tokens increaes, the rotations associated with the different dimensions becomes increasingly misaligned. When their contributions are combined, the encoded position information in the attention scores tend to weaken with distance, adding a locality bias.
-
-**TODO: explain how this is applied to Q and K**

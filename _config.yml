@@ -4,9 +4,7 @@ url: ""
 baseurl: ""
 markdown: kramdown
 permalink: /articles/:title/
-
-kramdown:
-  syntax_highlighter: rouge
+highlighter: rouge
 
 plugins:
   - jekyll-feed
