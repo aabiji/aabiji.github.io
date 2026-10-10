@@ -5,11 +5,9 @@ date: 2026-09-21
 
 All content from this article is taken from [(Su et al., 2021)](https://arxiv.org/pdf/2104.09864). I found the derivation of the paper's core idea a bit tricky, so I wanted to write down my understanding of its mathematics.
 
----
-
 Since Transformers don't have an inherent notion of order, positional information needs to be encoded into the representations passed into the attention mechanism. Fixed sinuisodal encodings and learned encodings are two ways to do this, but what if we could construct a positional encoding that represents the absolute position of each representation, while also causing the dot product between two representations to depend on their relative positions in the sequence?
 
-Consider two vectors, $\boldsymbol{z_1}$ and $\boldsymbol{z_2}$, represented in the complex plane. Their dot product is
+Consider two 2D vectors, $\boldsymbol{z_1}$ and $\boldsymbol{z_2}$, represented in the complex plane. Their dot product is
 
 $$
 \boldsymbol{z}^T \boldsymbol{z_2} = r_1 r_2 (\cos \theta_1 \cos \theta_2 +\sin \theta_1 \sin \theta_2) = r_1 r_2 \cos(\theta_1 - \theta_2)
@@ -31,7 +29,7 @@ $$
 
 So $\boldsymbol{q} = \boldsymbol{R_q} \boldsymbol{W_q} \boldsymbol{x_m}$. The same concept applies to $\boldsymbol{k}$ as well.
 
-Extending rotation to representations of an even dimension, we can divide the representation into $d / 2$ pairs. Each pair is treated as an independent 2D vector and is rotated independently. Each pair also uses different rotation frequencies, $\Theta = \\{ 10000 ^ {-2 i / d}, i \in \\{ 0, 1, 2, ... d / 2 - 1 \\} \\}$. So, a pair at $i$ in an representation at position $m$ is rotated by $m \Theta_i$ radians. A complete rotation can be written as a block-diagonal matrix, or as a sum of two Hadamard products for efficiency.
+Extending rotation to representations of an even dimension, we can divide the representation into $d / 2$ pairs. Each pair is treated as an independent 2D vector and is rotated independently. Each pair also uses different rotation frequencies, $\Theta = \\{ 10000 ^ {-2 i / d}, i \in \\{ 0, 1, 2, ... d / 2 - 1 \\} \\}$, similar to what was used in [(Vaswani et al., 2017)](https://arxiv.org/pdf/1706.03762). So, a pair at $i$ in the representation at position $m$ is rotated by $m \Theta_i$ radians. A complete rotation can be written as a block-diagonal matrix, or as a sum of two element-wise vector multiplications for efficiency.
 
 $$
 
@@ -83,6 +81,6 @@ This construction offers a few more interesting properties that makes it better 
 
 - Rotations preserve the rotation of a vector. They also preserve the angle between two vectors when the same rotation is applied to both, so positional information is introduced by changing the direction of the representation rather than its magnitude.
 
-- The positional encoding is periodic. However, this isn't a problem in practice since multiple frequencies are used simultaneously. The lower indexed pairs rotate more quickly, while higher indexed pairs rotate more slowly, providing positional information at multiple scales and making each position encoding unique across massive context lengths.
+- Although the positional encoding is periodic, this isn't a problem in practice since multiple frequencies are used simultaneously. The lower indexed pairs rotate more quickly, while higher indexed pairs rotate more slowly, providing positional information at multiple scales and making each position encoding unique across large context lengths.
 
 - As the relative distance between two tokens increaes, the rotations associated with the different dimensions becomes increasingly misaligned. When their contributions are combined, the encoded position information in the attention scores tend to weaken with distance, adding a locality bias.
