@@ -194,8 +194,11 @@ a:hover {
 }
 
 .post-content h2,
-.post-content h3 {
-  font-weight: 400;
+.post-content h3,
+.post-content h4,
+.post-content h5,
+.post-content h6 {
+  font-weight: bold;
   line-height: 1.35;
   margin: 2em 0 .7em
 }
