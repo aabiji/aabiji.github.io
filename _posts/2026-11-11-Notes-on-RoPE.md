@@ -1,6 +1,6 @@
 ---
 title: "Notes on RoPE"
-date: 2026-09-21
+date: 2026-11-11
 ---
 
 Transformers don't have an inherent notion of order, so positional information needs to be encoded somewhere. Fixed sinusoidal encodings and learned encodings do this by adding a position vector to the input embeddings [(Vaswani et al., 2017)](https://arxiv.org/pdf/1706.03762). Rotary Position Embedding (RoPE) [(Su et al., 2021)](https://arxiv.org/pdf/2104.09864) instead encodes position directly into the attention score, so that the score between a query at position $m$ and a key at position $n$ depends on their contents and on their offset $n - m$. The following derivation is based off of Su et al.

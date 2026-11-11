@@ -1,4 +1,11 @@
 :root {
+  color-scheme: light;
+
+  --bg: #fff;
+  --text: #222;
+  --muted: #777;
+  --content: 720px;
+
   --code-bg: #f8f8f8;
   --code-comment: #999988;
   --code-keyword: #000000;
@@ -15,6 +22,12 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #181818;
+  --text: #ddd;
+  --muted: #999;
+
   --code-bg: #1f1f1f;
   --code-comment: #7f8a99;
   --code-keyword: #ff7b72;
@@ -31,13 +44,13 @@
 }
 
 * {
-  box-sizing: border-box
+  box-sizing: border-box;
 }
 
 html {
   font-size: 16px;
   background: var(--bg);
-  color: var(--text)
+  color: var(--text);
 }
 
 body {
@@ -54,32 +67,33 @@ body {
 .site {
   width: min(calc(100% - 40px), var(--content));
   margin: 0 auto;
-  padding: 64px 0 80px
+  padding: 64px 0 80px;
 }
 
 a {
   color: inherit;
-  text-decoration: none
+  text-decoration: none;
 }
 
 a:hover {
   text-decoration: underline;
-  text-underline-offset: 3px
+  text-underline-offset: 3px;
 }
 
+/* Home */
 .home-intro {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 110px;
   gap: 44px;
   align-items: center;
-  margin-bottom: 76px
+  margin-bottom: 76px;
 }
 
 .home-copy h1 {
   margin: 0 0 12px;
   font-size: 22px;
   line-height: 1.2;
-  font-weight: 400
+  font-weight: 400;
 }
 
 .home-copy p {
@@ -87,7 +101,7 @@ a:hover {
   margin: 0;
   color: var(--muted);
   font-size: 15px;
-  line-height: 1.7
+  line-height: 1.7;
 }
 
 .profile {
@@ -97,7 +111,7 @@ a:hover {
   max-width: 110px;
   max-height: 110px;
   object-fit: cover;
-  border-radius: 50%
+  border-radius: 50%;
 }
 
 .socials,
@@ -105,15 +119,14 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 18px;
-  margin-top: 18px
+  margin-top: 18px;
 }
 
-/* Larger social/navbar icons and links */
 .socials a,
 .navbar-right a,
 .theme-toggle {
   color: var(--muted);
-  font-size: 17px
+  font-size: 17px;
 }
 
 .theme-toggle {
@@ -122,94 +135,94 @@ a:hover {
   background: none;
   padding: 0;
   font: inherit;
-  cursor: pointer
+  font-size: 17px;
+  cursor: pointer;
 }
 
 .theme-toggle:hover,
 .socials a:hover,
 .navbar-right a:hover {
   color: var(--text);
-  text-decoration: none
+  text-decoration: none;
 }
 
-/* Articles heading */
+/* Article list */
 .articles h2 {
   margin: 0 0 18px;
   font-size: 14px;
   font-weight: 700;
-  line-height: 1.3
+  line-height: 1.3;
 }
 
 .article-list {
   margin: 0;
   padding: 0;
-  list-style: none
+  list-style: none;
 }
 
 .article-list li {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 24px;
-  padding: 5px 0
+  padding: 5px 0;
 }
 
-/* Article names and dates are now the same size */
 .article-list a,
 .article-list time {
-  font-size: 15px
+  font-size: 15px;
 }
 
 .article-list time {
   color: var(--muted);
-  font-variant-numeric: tabular-nums
+  font-variant-numeric: tabular-nums;
 }
 
+/* Navbar */
 .navbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 68px
+  margin-bottom: 68px;
 }
 
 .navbar>a {
   color: var(--muted);
-  font-size: 17px
+  font-size: 17px;
 }
 
 .navbar-right {
-  margin: 0
+  margin: 0;
 }
 
 /* Article page */
 .post {
   max-width: 650px;
-  margin: 0 auto
+  margin: 0 auto;
 }
 
 .post-header {
-  margin-bottom: 40px
+  margin-bottom: 40px;
 }
 
 .post-header h1 {
   margin: 0 0 8px;
   font-size: 25px;
   line-height: 1.25;
-  font-weight: 400
+  font-weight: 400;
 }
 
 .post-header time {
   color: var(--muted);
-  font-size: 13px
+  font-size: 13px;
 }
 
-/* Smaller article body */
 .post-content {
   font-size: 15px;
-  line-height: 1.75
+  line-height: 1.75;
 }
 
 .post-content p {
-  margin: 0 0 1.35em
+  margin: 0 0 1.35em;
 }
 
 .post-content h2,
@@ -219,63 +232,21 @@ a:hover {
 .post-content h6 {
   font-weight: bold;
   line-height: 1.35;
-  margin: 2em 0 .7em
+  margin: 2em 0 .7em;
 }
 
 .post-content h2 {
-  font-size: 20px
+  font-size: 20px;
 }
 
 .post-content h3 {
-  font-size: 16px
+  font-size: 16px;
 }
 
 .post-content img {
   display: block;
   max-width: 100%;
-  height: auto
-}
-
-.post-content pre {
-  overflow: auto;
-  padding: 14px;
-  background: rgba(127, 127, 127, .12);
-  font-size: 13px
-}
-
-@media(max-width:600px) {
-  .site {
-    width: min(calc(100% - 30px), var(--content));
-    padding-top: 40px
-  }
-
-  .home-intro {
-    grid-template-columns: 1fr;
-    gap: 24px;
-    margin-bottom: 58px
-  }
-
-  .profile {
-    width: 90px;
-    height: 90px;
-    max-width: 90px;
-    max-height: 90px;
-    order: -1
-  }
-
-  .navbar {
-    margin-bottom: 52px
-  }
-
-  .navbar-right {
-    gap: 14px
-  }
-
-  .navbar>a,
-  .navbar-right a,
-  .theme-toggle {
-    font-size: 16px
-  }
+  height: auto;
 }
 
 .post-content a {
@@ -289,7 +260,6 @@ a:hover {
   color: #1d4ed8;
 }
 
-/* Dark theme */
 :root[data-theme="dark"] .post-content a {
   color: #60a5fa;
 }
@@ -298,10 +268,45 @@ a:hover {
   color: #93c5fd;
 }
 
-.highlight {
-  background: var(--code-bg);
+/* Code */
+.post-content pre {
+  overflow: auto;
+  padding: 14px;
+  background: rgba(127, 127, 127, .12);
+  font-size: 13px;
 }
 
+.post-content code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: .88em;
+}
+
+.post-content pre code {
+  font-size: inherit;
+}
+
+/* Must come after .post-content pre so it wins at equal specificity */
+.highlight {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  background: var(--code-bg);
+  border-radius: 3px;
+}
+
+.highlight pre {
+  margin: 0;
+  padding: 16px;
+  background: transparent;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.highlight code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+/* Syntax tokens (Rouge) */
 .highlight .c,
 .highlight .cm,
 .highlight .c1,
@@ -395,4 +400,40 @@ a:hover {
 .highlight .err {
   color: var(--code-error-fg);
   background: var(--code-error-bg);
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .site {
+    width: min(calc(100% - 30px), var(--content));
+    padding-top: 40px;
+  }
+
+  .home-intro {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: 58px;
+  }
+
+  .profile {
+    width: 90px;
+    height: 90px;
+    max-width: 90px;
+    max-height: 90px;
+    order: -1;
+  }
+
+  .navbar {
+    margin-bottom: 52px;
+  }
+
+  .navbar-right {
+    gap: 14px;
+  }
+
+  .navbar>a,
+  .navbar-right a,
+  .theme-toggle {
+    font-size: 16px;
+  }
 }
