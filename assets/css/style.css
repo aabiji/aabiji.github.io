@@ -1,14 +1,33 @@
 :root {
-  --bg: #fff;
-  --text: #222;
-  --muted: #777;
-  --content: 720px
+  --code-bg: #f8f8f8;
+  --code-comment: #999988;
+  --code-keyword: #000000;
+  --code-number: #009999;
+  --code-string: #d14;
+  --code-type: #445588;
+  --code-function: #990000;
+  --code-builtin: #0086B3;
+  --code-const: #008080;
+  --code-regex: #009926;
+  --code-tag: #000080;
+  --code-error-fg: #a61717;
+  --code-error-bg: #e3d2d2;
 }
 
 :root[data-theme="dark"] {
-  --bg: #181818;
-  --text: #ddd;
-  --muted: #999
+  --code-bg: #1f1f1f;
+  --code-comment: #7f8a99;
+  --code-keyword: #ff7b72;
+  --code-number: #79c0ff;
+  --code-string: #a5d6ff;
+  --code-type: #ffa657;
+  --code-function: #d2a8ff;
+  --code-builtin: #79c0ff;
+  --code-const: #79c0ff;
+  --code-regex: #7ee787;
+  --code-tag: #7ee787;
+  --code-error-fg: #ffa198;
+  --code-error-bg: #490202;
 }
 
 * {
@@ -280,322 +299,100 @@ a:hover {
 }
 
 .highlight {
-  margin: 1.5em 0;
-  overflow-x: auto;
-  background: rgba(127, 127, 127, .12);
-  border-radius: 3px;
+  background: var(--code-bg);
 }
 
-.highlight pre {
-  margin: 0;
-  padding: 16px;
-  background: transparent;
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-x: auto;
-}
-
-.highlight code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-}
-
-/* Inline code */
-.post-content code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: .88em;
-}
-
-/* Don't apply the inline-code styling to fenced code blocks */
-.post-content pre code {
-  font-size: inherit;
-}
-
-.highlight table td {
-  padding: 5px;
-}
-
-.highlight table pre {
-  margin: 0;
-}
-
-.highlight .cm {
-  color: #999988;
+.highlight .c,
+.highlight .cm,
+.highlight .c1,
+.highlight .ch,
+.highlight .cd,
+.highlight .cpf,
+.highlight .cs {
+  color: var(--code-comment);
   font-style: italic;
 }
 
 .highlight .cp {
-  color: #999999;
-  font-weight: bold;
-}
-
-.highlight .c1 {
-  color: #999988;
-  font-style: italic;
-}
-
-.highlight .cs {
-  color: #999999;
-  font-weight: bold;
-  font-style: italic;
-}
-
-.highlight .c,
-.highlight .ch,
-.highlight .cd,
-.highlight .cpf {
-  color: #999988;
-  font-style: italic;
-}
-
-.highlight .err {
-  color: #a61717;
-  background-color: #e3d2d2;
-}
-
-.highlight .gd {
-  color: #000000;
-  background-color: #ffdddd;
-}
-
-.highlight .ge {
-  color: #000000;
-  font-style: italic;
-}
-
-.highlight .gr {
-  color: #aa0000;
-}
-
-.highlight .gh {
-  color: #999999;
-}
-
-.highlight .gi {
-  color: #000000;
-  background-color: #ddffdd;
-}
-
-.highlight .go {
-  color: #888888;
-}
-
-.highlight .gp {
-  color: #555555;
-}
-
-.highlight .gs {
-  font-weight: bold;
-}
-
-.highlight .gu {
-  color: #aaaaaa;
-}
-
-.highlight .gt {
-  color: #aa0000;
-}
-
-.highlight .kc {
-  color: #000000;
-  font-weight: bold;
-}
-
-.highlight .kd {
-  color: #000000;
-  font-weight: bold;
-}
-
-.highlight .kn {
-  color: #000000;
-  font-weight: bold;
-}
-
-.highlight .kp {
-  color: #000000;
-  font-weight: bold;
-}
-
-.highlight .kr {
-  color: #000000;
-  font-weight: bold;
-}
-
-.highlight .kt {
-  color: #445588;
+  color: var(--code-comment);
   font-weight: bold;
 }
 
 .highlight .k,
-.highlight .kv {
-  color: #000000;
+.highlight .kc,
+.highlight .kd,
+.highlight .kn,
+.highlight .kp,
+.highlight .kr,
+.highlight .kv,
+.highlight .ow,
+.highlight .o,
+.highlight .sa {
+  color: var(--code-keyword);
   font-weight: bold;
 }
 
-.highlight .mf {
-  color: #009999;
-}
-
-.highlight .mh {
-  color: #009999;
-}
-
-.highlight .il {
-  color: #009999;
-}
-
-.highlight .mi {
-  color: #009999;
-}
-
-.highlight .mo {
-  color: #009999;
+.highlight .kt,
+.highlight .nc {
+  color: var(--code-type);
+  font-weight: bold;
 }
 
 .highlight .m,
 .highlight .mb,
-.highlight .mx {
-  color: #009999;
-}
-
-.highlight .sa {
-  color: #000000;
-  font-weight: bold;
-}
-
-.highlight .sb {
-  color: #d14;
-}
-
-.highlight .sc {
-  color: #d14;
-}
-
-.highlight .sd {
-  color: #d14;
-}
-
-.highlight .s2 {
-  color: #d14;
-}
-
-.highlight .se {
-  color: #d14;
-}
-
-.highlight .sh {
-  color: #d14;
-}
-
-.highlight .si {
-  color: #d14;
-}
-
-.highlight .sx {
-  color: #d14;
-}
-
-.highlight .sr {
-  color: #009926;
-}
-
-.highlight .s1 {
-  color: #d14;
-}
-
-.highlight .ss {
-  color: #990073;
+.highlight .mf,
+.highlight .mh,
+.highlight .mi,
+.highlight .mo,
+.highlight .mx,
+.highlight .il {
+  color: var(--code-number);
 }
 
 .highlight .s,
+.highlight .s1,
+.highlight .s2,
+.highlight .sb,
+.highlight .sc,
+.highlight .sd,
+.highlight .se,
+.highlight .sh,
+.highlight .si,
+.highlight .sx,
 .highlight .dl {
-  color: #d14;
+  color: var(--code-string);
 }
 
-.highlight .na {
-  color: #008080;
-}
-
-.highlight .bp {
-  color: #999999;
-}
-
-.highlight .nb {
-  color: #0086B3;
-}
-
-.highlight .nc {
-  color: #445588;
-  font-weight: bold;
-}
-
-.highlight .no {
-  color: #008080;
-}
-
-.highlight .nd {
-  color: #3c5d5d;
-  font-weight: bold;
-}
-
-.highlight .ni {
-  color: #800080;
-}
-
-.highlight .ne {
-  color: #990000;
-  font-weight: bold;
+.highlight .sr {
+  color: var(--code-regex);
 }
 
 .highlight .nf,
-.highlight .fm {
-  color: #990000;
-  font-weight: bold;
-}
-
+.highlight .fm,
 .highlight .nl {
-  color: #990000;
+  color: var(--code-function);
   font-weight: bold;
 }
 
-.highlight .nn {
-  color: #555555;
+.highlight .nb {
+  color: var(--code-builtin);
+}
+
+.highlight .na,
+.highlight .no,
+.highlight .nv,
+.highlight .vc,
+.highlight .vg,
+.highlight .vi,
+.highlight .vm {
+  color: var(--code-const);
 }
 
 .highlight .nt {
-  color: #000080;
+  color: var(--code-tag);
 }
 
-.highlight .vc {
-  color: #008080;
-}
-
-.highlight .vg {
-  color: #008080;
-}
-
-.highlight .vi {
-  color: #008080;
-}
-
-.highlight .nv,
-.highlight .vm {
-  color: #008080;
-}
-
-.highlight .ow {
-  color: #000000;
-  font-weight: bold;
-}
-
-.highlight .o {
-  color: #000000;
-  font-weight: bold;
-}
-
-.highlight .w {
-  color: #bbbbbb;
-}
-
-.highlight {
-  background-color: #f8f8f8;
+.highlight .err {
+  color: var(--code-error-fg);
+  background: var(--code-error-bg);
 }

@@ -1,16 +1,21 @@
 const toggle = document.querySelector('.theme-toggle');
+const mq = matchMedia('(prefers-color-scheme: dark)');
 
-function setTheme(theme) {
+function setTheme(theme, persist) {
   document.documentElement.dataset.theme = theme;
-  localStorage.theme = theme;
+  if (persist) {
+    try { localStorage.setItem('theme', theme); } catch (e) { }
+  }
 }
 
 toggle?.addEventListener('click', () => {
-  const currentTheme = document.documentElement.dataset.theme;
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  setTheme(next, true);
+});
 
-  if (currentTheme === 'dark') {
-    setTheme('light');
-  } else {
-    setTheme('dark');
-  }
+// Follow live OS changes only if the user hasn't picked a theme
+mq.addEventListener('change', (e) => {
+  let saved;
+  try { saved = localStorage.getItem('theme'); } catch (err) { }
+  if (!saved) setTheme(e.matches ? 'dark' : 'light', false);
 });
